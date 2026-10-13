@@ -6,6 +6,7 @@ using Ovrilo.Api.System;
 using Ovrilo.Modules.Channels;
 using Ovrilo.Modules.Communities;
 using Ovrilo.Modules.Identity;
+using Ovrilo.Modules.VoiceSessions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,9 @@ if (BuildTimeOpenApi.IsGenerating)
 {
     // Build-time OpenAPI generation starts the host without secrets; nothing is signed or served.
     builder.Configuration["Identity:Jwt:SigningKey"] = BuildTimeOpenApi.PlaceholderSigningKey;
+    builder.Configuration["VoiceSessions:LiveKit:ServerUrl"] = "ws://localhost";
+    builder.Configuration["VoiceSessions:LiveKit:ApiKey"] = "openapi";
+    builder.Configuration["VoiceSessions:LiveKit:ApiSecret"] = BuildTimeOpenApi.PlaceholderSigningKey;
 }
 
 var apiVersion = typeof(Program).Assembly
@@ -46,6 +50,7 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy
 builder.Services.AddIdentityModule();
 builder.Services.AddCommunitiesModule();
 builder.Services.AddChannelsModule();
+builder.Services.AddVoiceSessionsModule();
 
 var app = builder.Build();
 
@@ -73,6 +78,7 @@ app.MapGet("/version", () => new VersionResponse(apiVersion, ApiContract.Version
 app.MapIdentityEndpoints();
 app.MapCommunitiesEndpoints();
 app.MapChannelsEndpoints();
+app.MapVoiceSessionsEndpoints();
 
 // Development and tests only. Production schema changes are explicit, authorized operations.
 if (app.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup"))

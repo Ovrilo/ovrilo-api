@@ -12,6 +12,9 @@ namespace Ovrilo.Api.Tests;
 public sealed class OvriloApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     public const string TestSigningKey = "integration-test-signing-key-not-a-secret-0123456789";
+    public const string TestLiveKitUrl = "ws://livekit.test:7880";
+    public const string TestLiveKitKey = "test-key";
+    public const string TestLiveKitSecret = "integration-test-livekit-secret-not-a-secret-0123";
 
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:17.11-alpine").Build();
 
@@ -26,6 +29,9 @@ public sealed class OvriloApiFactory : WebApplicationFactory<Program>, IAsyncLif
         builder.UseSetting("Database:ApplyMigrationsOnStartup", "true");
         builder.UseSetting("Identity:Jwt:SigningKey", TestSigningKey);
         builder.UseSetting("Identity:RateLimit:PermitLimit", "10000");
+        builder.UseSetting("VoiceSessions:LiveKit:ServerUrl", TestLiveKitUrl);
+        builder.UseSetting("VoiceSessions:LiveKit:ApiKey", TestLiveKitKey);
+        builder.UseSetting("VoiceSessions:LiveKit:ApiSecret", TestLiveKitSecret);
     }
 }
 

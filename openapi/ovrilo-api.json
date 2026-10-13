@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Ovrilo API",
-    "version": "0.3.0"
+    "version": "0.4.0"
   },
   "paths": {
     "/version": {
@@ -246,6 +246,66 @@
           },
           "409": {
             "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/channels/{channelId}/voice/join": {
+      "post": {
+        "tags": [
+          "Voice"
+        ],
+        "summary": "Issues a short-lived SFU grant for a voice channel the caller may join. Requires ConnectVoice.",
+        "operationId": "JoinVoiceChannel",
+        "parameters": [
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceJoinResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1542,6 +1602,26 @@
             "type": "string"
           }
         }
+      },
+      "VoiceJoinResponse": {
+        "required": [
+          "serverUrl",
+          "token",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "serverUrl": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -1565,6 +1645,9 @@
     },
     {
       "name": "Channels"
+    },
+    {
+      "name": "Voice"
     },
     {
       "name": "Auth"
