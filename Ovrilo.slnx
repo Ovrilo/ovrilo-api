@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Ovrilo.Api/Ovrilo.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Ovrilo.Api.Tests/Ovrilo.Api.Tests.csproj" />
+  </Folder>
+</Solution>
