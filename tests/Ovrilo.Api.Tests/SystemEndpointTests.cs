@@ -1,14 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
 
-using Microsoft.AspNetCore.Mvc.Testing;
-
 using Ovrilo.Api.System;
 
 namespace Ovrilo.Api.Tests;
 
-public sealed class SystemEndpointTests(WebApplicationFactory<Program> factory)
-    : IClassFixture<WebApplicationFactory<Program>>
+[Collection(SharedApiFixture.Name)]
+public sealed class SystemEndpointTests(OvriloApiFactory factory)
 {
     [Fact]
     public async Task HealthReturnsOk()

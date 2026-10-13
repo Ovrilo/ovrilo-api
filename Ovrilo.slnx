@@ -2,7 +2,13 @@
   <Folder Name="/src/">
     <Project Path="src/Ovrilo.Api/Ovrilo.Api.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Identity/">
+    <Project Path="src/Modules/Identity/Ovrilo.Modules.Identity.Contracts/Ovrilo.Modules.Identity.Contracts.csproj" />
+    <Project Path="src/Modules/Identity/Ovrilo.Modules.Identity/Ovrilo.Modules.Identity.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Ovrilo.Api.Tests/Ovrilo.Api.Tests.csproj" />
+    <Project Path="tests/Ovrilo.ArchitectureTests/Ovrilo.ArchitectureTests.csproj" />
   </Folder>
 </Solution>

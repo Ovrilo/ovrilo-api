@@ -13,8 +13,21 @@ ASP.NET Core modular monolith for [Ovrilo](https://github.com/Ovrilo): identity,
 dotnet build
 dotnet test
 dotnet format --verify-no-changes
-dotnet run --project src/Ovrilo.Api      # http://localhost:5158
+dotnet run --project src/Ovrilo.Api      # http://localhost:5158 (Development: applies migrations on startup)
 ```
+
+Start local infrastructure first (`../ovrilo-infra/local`, `docker compose up -d --wait`). Integration tests start their own disposable PostgreSQL container via Testcontainers and need Docker running.
+
+### Migrations
+
+Each module owns its schema and migrations. Example for Identity:
+
+```bash
+dotnet tool restore
+dotnet ef migrations add <Name> --project src/Modules/Identity/Ovrilo.Modules.Identity --startup-project src/Ovrilo.Api --output-dir Persistence/Migrations
+```
+
+`Database:ApplyMigrationsOnStartup` is enabled only in Development/tests. Production migrations are explicit, authorized operations.
 
 Endpoints: `GET /health`, `GET /version`; `GET /openapi/v1.json` in Development.
 
@@ -25,8 +38,21 @@ Endpoints: `GET /health`, `GET /version`; `GET /openapi/v1.json` in Development.
 ## Layout
 
 - `src/Ovrilo.Api` — host: composition root, middleware, endpoint mapping.
-- `tests/Ovrilo.Api.Tests` — integration tests via `WebApplicationFactory`.
-- Modules (`Identity`, `Communities`, `Channels`, `Messaging`, `Social`, `Presence`, `VoiceSessions`, `Media`) are added per phase as vertical slices with their own PostgreSQL schema.
+- `src/Modules/<Module>/Ovrilo.Modules.<Module>` — module implementation (internal domain, persistence, endpoints).
+- `src/Modules/<Module>/Ovrilo.Modules.<Module>.Contracts` — the only assembly other modules may reference.
+- `tests/Ovrilo.Api.Tests` — integration tests via `WebApplicationFactory` + Testcontainers PostgreSQL.
+- `tests/Ovrilo.ArchitectureTests` — module boundary rules (ADR-0004).
+- Implemented modules: `Identity` (accounts, password sign-in, rotating refresh sessions; ADR-0012). Others (`Communities`, `Channels`, `Messaging`, `Social`, `Presence`, `VoiceSessions`, `Media`) are added per phase.
+
+## Configuration
+
+| Key | Notes |
+|---|---|
+| `ConnectionStrings:Ovrilo` | PostgreSQL connection string |
+| `Identity:Jwt:SigningKey` | ≥32 bytes; required outside Development (secret) |
+| `Identity:Jwt:AccessTokenLifetimeMinutes` / `SessionLifetimeDays` | Defaults 15 / 30 |
+| `Identity:RateLimit:PermitLimit` / `WindowSeconds` | Per-IP limit for register/login/refresh; defaults 10 / 60 |
+| `Database:ApplyMigrationsOnStartup` | Development/tests only |
 
 ## Architecture rules
 
