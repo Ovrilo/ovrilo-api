@@ -1,0 +1,54 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Ovrilo API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/version": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Returns the API build version and contract version.",
+        "operationId": "GetVersion",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "VersionResponse": {
+        "required": [
+          "version",
+          "contractVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "contractVersion": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "System"
+    }
+  ]
+}

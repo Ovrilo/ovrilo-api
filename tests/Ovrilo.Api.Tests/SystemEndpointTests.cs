@@ -28,5 +28,17 @@ public sealed class SystemEndpointTests(WebApplicationFactory<Program> factory)
         var body = await client.GetFromJsonAsync<VersionResponse>(new Uri("/version", UriKind.Relative));
 
         Assert.False(string.IsNullOrWhiteSpace(body?.Version));
+        Assert.Equal(ApiContract.Version, body?.ContractVersion);
+    }
+
+    [Fact]
+    public async Task UnknownRouteReturnsProblemDetails()
+    {
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync(new Uri("/does-not-exist", UriKind.Relative));
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
     }
 }

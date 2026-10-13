@@ -16,7 +16,11 @@ dotnet format --verify-no-changes
 dotnet run --project src/Ovrilo.Api      # http://localhost:5158
 ```
 
-Development endpoints: `GET /health`, `GET /version`, `GET /openapi/v1.json` (Development only).
+Endpoints: `GET /health`, `GET /version`; `GET /openapi/v1.json` in Development.
+
+## OpenAPI contract
+
+`dotnet build` regenerates `openapi/ovrilo-api.json`. Commit it with the code change; CI fails when it is stale. The contract version is `ApiContract.Version`; errors use RFC 9457 Problem Details. See `docs/development/CONTRACTS.md` in the workspace.
 
 ## Layout
 
