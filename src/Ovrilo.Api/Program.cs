@@ -1,6 +1,10 @@
 using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 using Ovrilo.Api.System;
+using Ovrilo.Modules.Channels;
+using Ovrilo.Modules.Communities;
 using Ovrilo.Modules.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,6 +20,8 @@ var apiVersion = typeof(Program).Assembly
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddProblemDetails();
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false)));
 builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer((document, _, _) =>
@@ -29,6 +35,8 @@ builder.Services.AddOpenApi(options =>
 builder.Services.AddHealthChecks();
 
 builder.Services.AddIdentityModule();
+builder.Services.AddCommunitiesModule();
+builder.Services.AddChannelsModule();
 
 var app = builder.Build();
 
@@ -53,11 +61,15 @@ app.MapGet("/version", () => new VersionResponse(apiVersion, ApiContract.Version
     .WithSummary("Returns the API build version and contract version.");
 
 app.MapIdentityEndpoints();
+app.MapCommunitiesEndpoints();
+app.MapChannelsEndpoints();
 
 // Development and tests only. Production schema changes are explicit, authorized operations.
 if (app.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup"))
 {
     await app.Services.MigrateIdentityDatabaseAsync();
+    await app.Services.MigrateCommunitiesDatabaseAsync();
+    await app.Services.MigrateChannelsDatabaseAsync();
 }
 
 await app.RunAsync();

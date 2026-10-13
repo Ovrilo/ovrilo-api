@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
+using Ovrilo.BuildingBlocks.Persistence;
 using Ovrilo.Modules.Identity.Contracts;
 using Ovrilo.Modules.Identity.Domain;
 using Ovrilo.Modules.Identity.Features;
@@ -34,10 +35,7 @@ public static class IdentityModule
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        services.AddDbContext<IdentityDbContext>((provider, options) =>
-            IdentityDbContextOptions.Configure(
-                options,
-                provider.GetRequiredService<IConfiguration>().GetConnectionString(IdentityDbContextOptions.ConnectionStringName)));
+        services.AddModuleDbContext<IdentityDbContext>(IdentityDbContext.Schema);
 
         services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddSingleton<DummyPasswordHash>();
@@ -133,12 +131,8 @@ public static class IdentityModule
     }
 
     /// <summary>Applies pending Identity schema migrations. Development/test only; production migrations are explicit operations.</summary>
-    public static async Task MigrateIdentityDatabaseAsync(this IServiceProvider services, CancellationToken cancellationToken = default)
-    {
-        await using var scope = services.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
-        await db.Database.MigrateAsync(cancellationToken);
-    }
+    public static Task MigrateIdentityDatabaseAsync(this IServiceProvider services, CancellationToken cancellationToken = default) =>
+        services.MigrateModuleAsync<IdentityDbContext>(cancellationToken);
 }
 
 internal sealed class IdentityModuleApi(IdentityDbContext db) : IIdentityModule
@@ -148,6 +142,15 @@ internal sealed class IdentityModuleApi(IdentityDbContext db) : IIdentityModule
             .Where(u => u.Id == userId && u.Status == UserStatus.Active)
             .Select(u => new PublicUser(u.Id, u.Username, u.DisplayName))
             .SingleOrDefaultAsync(cancellationToken);
+
+    public async Task<IReadOnlyDictionary<Guid, PublicUser>> GetPublicUsersAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(userIds);
+        return await db.Users.AsNoTracking()
+            .Where(u => userIds.Contains(u.Id) && u.Status == UserStatus.Active)
+            .Select(u => new PublicUser(u.Id, u.Username, u.DisplayName))
+            .ToDictionaryAsync(u => u.Id, cancellationToken);
+    }
 
     public Task<bool> IsAccountActiveAsync(Guid userId, CancellationToken cancellationToken = default) =>
         db.Users.AnyAsync(u => u.Id == userId && u.Status == UserStatus.Active, cancellationToken);

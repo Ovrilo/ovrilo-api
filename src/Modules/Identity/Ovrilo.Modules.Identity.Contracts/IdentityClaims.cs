@@ -15,6 +15,10 @@ public static class IdentityClaims
         return Guid.TryParse(principal.FindFirst(UserId)?.Value, out var id) ? id : null;
     }
 
+    /// <summary>Returns the authenticated user's ID. Only call from endpoints that require authorization.</summary>
+    public static Guid GetRequiredUserId(this ClaimsPrincipal principal) =>
+        principal.GetUserId() ?? throw new InvalidOperationException("The endpoint requires an authenticated user.");
+
     /// <summary>Returns the session ID of the current access token, or <c>null</c>.</summary>
     public static Guid? GetSessionId(this ClaimsPrincipal principal)
     {

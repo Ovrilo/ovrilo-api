@@ -2,7 +2,18 @@
   <Folder Name="/src/">
     <Project Path="src/Ovrilo.Api/Ovrilo.Api.csproj" />
   </Folder>
+  <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/Ovrilo.BuildingBlocks/Ovrilo.BuildingBlocks.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Channels/">
+    <Project Path="src/Modules/Channels/Ovrilo.Modules.Channels.Contracts/Ovrilo.Modules.Channels.Contracts.csproj" />
+    <Project Path="src/Modules/Channels/Ovrilo.Modules.Channels/Ovrilo.Modules.Channels.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Communities/">
+    <Project Path="src/Modules/Communities/Ovrilo.Modules.Communities.Contracts/Ovrilo.Modules.Communities.Contracts.csproj" />
+    <Project Path="src/Modules/Communities/Ovrilo.Modules.Communities/Ovrilo.Modules.Communities.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Identity/">
     <Project Path="src/Modules/Identity/Ovrilo.Modules.Identity.Contracts/Ovrilo.Modules.Identity.Contracts.csproj" />
     <Project Path="src/Modules/Identity/Ovrilo.Modules.Identity/Ovrilo.Modules.Identity.csproj" />

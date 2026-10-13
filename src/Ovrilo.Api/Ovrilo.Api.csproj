@@ -24,6 +24,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Modules\Identity\Ovrilo.Modules.Identity\Ovrilo.Modules.Identity.csproj" />
     <ProjectReference Include="..\Modules\Identity\Ovrilo.Modules.Identity.Contracts\Ovrilo.Modules.Identity.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Communities\Ovrilo.Modules.Communities\Ovrilo.Modules.Communities.csproj" />
+    <ProjectReference Include="..\Modules\Channels\Ovrilo.Modules.Channels\Ovrilo.Modules.Channels.csproj" />
   </ItemGroup>
 
 </Project>

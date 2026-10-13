@@ -29,6 +29,15 @@ jobs:
       - run: dotnet format --verify-no-changes --no-restore
       - run: dotnet build --configuration Release --no-restore
       - run: dotnet test --configuration Release --no-build
+      - name: EF Core models have migrations
+        shell: bash
+        run: |
+          dotnet tool restore
+          for project in src/Modules/*/Ovrilo.Modules.*/; do
+            case "$project" in *.Contracts/) continue ;; esac
+            echo "Checking $project"
+            dotnet ef migrations has-pending-model-changes --project "$project" --startup-project src/Ovrilo.Api --configuration Release --no-build
+          done
       - name: OpenAPI contract is up to date
         shell: bash
         run: |

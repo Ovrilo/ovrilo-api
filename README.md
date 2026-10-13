@@ -42,7 +42,8 @@ Endpoints: `GET /health`, `GET /version`; `GET /openapi/v1.json` in Development.
 - `src/Modules/<Module>/Ovrilo.Modules.<Module>.Contracts` — the only assembly other modules may reference.
 - `tests/Ovrilo.Api.Tests` — integration tests via `WebApplicationFactory` + Testcontainers PostgreSQL.
 - `tests/Ovrilo.ArchitectureTests` — module boundary rules (ADR-0004).
-- Implemented modules: `Identity` (accounts, password sign-in, rotating refresh sessions; ADR-0012). Others (`Communities`, `Channels`, `Messaging`, `Social`, `Presence`, `VoiceSessions`, `Media`) are added per phase.
+- Implemented modules: `Identity` (accounts, password sign-in, rotating refresh sessions; ADR-0012), `Communities` (private communities, Owner/Member roles, expiring invitations), `Channels` (text/voice channels, permission checks). Others (`Messaging`, `Social`, `Presence`, `VoiceSessions`, `Media`) are added per phase.
+- `src/BuildingBlocks/Ovrilo.BuildingBlocks` — shared technical helpers only (Problem Details, module PostgreSQL conventions); never domain logic, never references modules.
 
 ## Configuration
 
@@ -52,6 +53,7 @@ Endpoints: `GET /health`, `GET /version`; `GET /openapi/v1.json` in Development.
 | `Identity:Jwt:SigningKey` | ≥32 bytes; required outside Development (secret) |
 | `Identity:Jwt:AccessTokenLifetimeMinutes` / `SessionLifetimeDays` | Defaults 15 / 30 |
 | `Identity:RateLimit:PermitLimit` / `WindowSeconds` | Per-IP limit for register/login/refresh; defaults 10 / 60 |
+| `Communities:RateLimit:PermitLimit` / `WindowSeconds` | Per-user limit for invitation acceptance; defaults 20 / 60 |
 | `Database:ApplyMigrationsOnStartup` | Development/tests only |
 
 ## Architecture rules

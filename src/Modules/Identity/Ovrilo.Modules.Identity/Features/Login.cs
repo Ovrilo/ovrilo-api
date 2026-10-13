@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
+using Ovrilo.BuildingBlocks.Persistence;
 using Ovrilo.Modules.Identity.Domain;
 using Ovrilo.Modules.Identity.Persistence;
 

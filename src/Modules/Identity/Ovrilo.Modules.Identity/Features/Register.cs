@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
-using Npgsql;
 
+
+using Ovrilo.BuildingBlocks;
+using Ovrilo.BuildingBlocks.Persistence;
 using Ovrilo.Modules.Identity.Domain;
 using Ovrilo.Modules.Identity.Persistence;
 
@@ -31,7 +33,7 @@ internal static class Register
         AccountRules.ValidatePassword(request.Password, errors);
         if (errors.Count > 0)
         {
-            return IdentityProblems.Validation(errors);
+            return ApiProblems.Validation(errors);
         }
 
         if (await db.Users.AnyAsync(u => u.Username == username, cancellationToken))
@@ -66,12 +68,10 @@ internal static class Register
         {
             await db.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } pg)
+        catch (DbUpdateException ex) when (ex.IsUniqueViolation())
         {
             // A concurrent registration claimed the username or email between the checks and the insert.
-            return pg.ConstraintName?.Contains("username", StringComparison.Ordinal) == true
-                ? IdentityProblems.UsernameTaken()
-                : IdentityProblems.EmailTaken();
+            return ex.IsUniqueViolation("ix_users_username") ? IdentityProblems.UsernameTaken() : IdentityProblems.EmailTaken();
         }
 
         return TypedResults.Created("/users/me", sessions.CreateResponse(user, session, refreshToken));

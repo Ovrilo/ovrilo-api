@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 
+using Ovrilo.BuildingBlocks.Persistence;
 using Ovrilo.Modules.Identity.Domain;
 using Ovrilo.Modules.Identity.Persistence;
 using Ovrilo.Modules.Identity.Tokens;

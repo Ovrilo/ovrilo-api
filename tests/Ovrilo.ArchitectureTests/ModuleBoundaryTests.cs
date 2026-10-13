@@ -52,6 +52,14 @@ public sealed class ModuleBoundaryTests
         Assert.DoesNotContain(references, name => name.StartsWith("Microsoft.AspNetCore", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void BuildingBlocksDoNotDependOnModules()
+    {
+        var references = Assembly.Load("Ovrilo.BuildingBlocks").GetReferencedAssemblies().Select(r => r.Name!).ToList();
+
+        Assert.DoesNotContain(references, name => name.StartsWith(ModulePrefix, StringComparison.Ordinal));
+    }
+
     [Theory]
     [MemberData(nameof(ModuleAssemblies))]
     public void DbContextsAndPersistenceTypesAreInternal(string moduleName)
