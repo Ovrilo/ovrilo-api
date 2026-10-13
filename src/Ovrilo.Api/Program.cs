@@ -21,7 +21,11 @@ var apiVersion = typeof(Program).Assembly
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddProblemDetails();
 builder.Services.ConfigureHttpJsonOptions(options =>
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false)));
+{
+    // Strict numbers so the contract says "integer", not "integer | string".
+    options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict;
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
+});
 builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer((document, _, _) =>
@@ -33,6 +37,11 @@ builder.Services.AddOpenApi(options =>
     options.AddBearerSecurity();
 });
 builder.Services.AddHealthChecks();
+builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy
+    .WithOrigins(builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [])
+    .WithHeaders("Authorization", "Content-Type")
+    .WithMethods("GET", "POST", "PATCH", "DELETE")
+    .SetPreflightMaxAge(TimeSpan.FromHours(1))));
 
 builder.Services.AddIdentityModule();
 builder.Services.AddCommunitiesModule();
@@ -49,6 +58,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
