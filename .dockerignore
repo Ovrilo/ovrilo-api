@@ -1,0 +1,9 @@
+**/bin/
+**/obj/
+**/.vs/
+.git/
+.github/
+tests/
+openapi/
+**/appsettings.Development.json
+**/*.user
