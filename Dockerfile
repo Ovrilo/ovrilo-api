@@ -25,10 +25,17 @@ RUN dotnet publish src/Ovrilo.Api/Ovrilo.Api.csproj -c Release -o /app --no-rest
     -p:OpenApiGenerateDocuments=false -p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0.11 AS runtime
+# curl: container health checks (Docker/Coolify). libgssapi-krb5-2: Npgsql probes it at connect
+# time and logs an error without it, although Ovrilo only uses password authentication.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /app ./
 ENV ASPNETCORE_HTTP_PORTS=8080 \
     DOTNET_gcServer=0
 EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD curl -fsS http://localhost:8080/health || exit 1
 USER $APP_UID
 ENTRYPOINT ["dotnet", "Ovrilo.Api.dll"]
