@@ -72,7 +72,8 @@ internal static class RolePermissions
         | CommunityPermissions.ManageChannels
         | CommunityPermissions.ManageInvites
         | CommunityPermissions.ManageCommunity
-        | CommunityPermissions.ManageMembers;
+        | CommunityPermissions.ManageMembers
+        | CommunityPermissions.ManageMessages;
 
     public static CommunityPermissions For(CommunityRole role) => role switch
     {

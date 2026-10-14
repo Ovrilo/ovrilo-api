@@ -29,6 +29,8 @@ public sealed class OvriloApiFactory : WebApplicationFactory<Program>, IAsyncLif
         builder.UseSetting("Database:ApplyMigrationsOnStartup", "true");
         builder.UseSetting("Identity:Jwt:SigningKey", TestSigningKey);
         builder.UseSetting("Identity:RateLimit:PermitLimit", "10000");
+        builder.UseSetting("Messaging:RateLimit:PermitLimit", "10000");
+        builder.UseSetting("Realtime:PresenceGraceSeconds", "0");
         builder.UseSetting("VoiceSessions:LiveKit:ServerUrl", TestLiveKitUrl);
         builder.UseSetting("VoiceSessions:LiveKit:ApiKey", TestLiveKitKey);
         builder.UseSetting("VoiceSessions:LiveKit:ApiSecret", TestLiveKitSecret);

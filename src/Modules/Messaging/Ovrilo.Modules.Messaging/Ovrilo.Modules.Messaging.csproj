@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Ovrilo.BuildingBlocks\Ovrilo.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\..\Channels\Ovrilo.Modules.Channels.Contracts\Ovrilo.Modules.Channels.Contracts.csproj" />
+    <ProjectReference Include="..\..\Identity\Ovrilo.Modules.Identity.Contracts\Ovrilo.Modules.Identity.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Ovrilo API",
-    "version": "0.5.0"
+    "version": "0.6.0"
   },
   "paths": {
     "/version": {
@@ -369,6 +369,129 @@
           },
           "503": {
             "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/channels/{channelId}/read-state": {
+      "put": {
+        "tags": [
+          "Messages"
+        ],
+        "summary": "Marks a text channel read up to a message. Positions only move forward; the stored position is returned.",
+        "operationId": "MarkChannelRead",
+        "parameters": [
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkReadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadStateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/communities/{communityId}/unread": {
+      "get": {
+        "tags": [
+          "Messages"
+        ],
+        "summary": "Read position, newest message and unread count (capped at 100) of each readable text channel.",
+        "operationId": "ListCommunityUnread",
+        "parameters": [
+          {
+            "name": "communityId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ChannelUnreadResponse"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1180,6 +1303,349 @@
           }
         ]
       }
+    },
+    "/channels/{channelId}/messages": {
+      "post": {
+        "tags": [
+          "Messages"
+        ],
+        "summary": "Posts a message in a text channel. Resending the same clientMessageId returns the original message (200).",
+        "operationId": "SendMessage",
+        "parameters": [
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendMessageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Messages"
+        ],
+        "summary": "One page of channel history in ascending order: newest page, or older ('before') / newer ('after') than a message ID.",
+        "operationId": "ListMessages",
+        "parameters": [
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessagePageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/messages/{messageId}": {
+      "patch": {
+        "tags": [
+          "Messages"
+        ],
+        "summary": "Edits your own message.",
+        "operationId": "EditMessage",
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditMessageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Messages"
+        ],
+        "summary": "Deletes a message (yours, or anyone's with ManageMessages). Leaves a tombstone.",
+        "operationId": "DeleteMessage",
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -1271,6 +1737,39 @@
           "text",
           "voice"
         ]
+      },
+      "ChannelUnreadResponse": {
+        "required": [
+          "channelId",
+          "lastReadMessageId",
+          "lastMessageId",
+          "unreadCount"
+        ],
+        "type": "object",
+        "properties": {
+          "channelId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "lastReadMessageId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "lastMessageId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "unreadCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
       },
       "CommunityResponse": {
         "required": [
@@ -1411,6 +1910,17 @@
           }
         }
       },
+      "EditMessageRequest": {
+        "required": [
+          "content"
+        ],
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          }
+        }
+      },
       "HttpValidationProblemDetails": {
         "type": "object",
         "properties": {
@@ -1509,6 +2019,18 @@
           }
         }
       },
+      "MarkReadRequest": {
+        "required": [
+          "lastReadMessageId"
+        ],
+        "type": "object",
+        "properties": {
+          "lastReadMessageId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "MemberResponse": {
         "required": [
           "userId",
@@ -1541,6 +2063,105 @@
           },
           "joinedAt": {
             "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "MessageAuthor": {
+        "required": [
+          "id",
+          "displayName"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "MessagePageResponse": {
+        "required": [
+          "messages",
+          "hasMore"
+        ],
+        "type": "object",
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MessageResponse"
+            }
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MessageResponse": {
+        "required": [
+          "id",
+          "channelId",
+          "clientMessageId",
+          "author",
+          "content",
+          "replyToMessageId",
+          "createdAt",
+          "editedAt",
+          "deletedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "channelId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "clientMessageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "author": {
+            "$ref": "#/components/schemas/MessageAuthor"
+          },
+          "content": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "replyToMessageId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "editedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "deletedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
             "format": "date-time"
           }
         }
@@ -1578,6 +2199,23 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "ReadStateResponse": {
+        "required": [
+          "channelId",
+          "lastReadMessageId"
+        ],
+        "type": "object",
+        "properties": {
+          "channelId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "lastReadMessageId": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -1619,6 +2257,30 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "SendMessageRequest": {
+        "required": [
+          "clientMessageId",
+          "content",
+          "replyToMessageId"
+        ],
+        "type": "object",
+        "properties": {
+          "clientMessageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "content": {
+            "type": "string"
+          },
+          "replyToMessageId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
           }
         }
       },
@@ -1750,6 +2412,9 @@
     },
     {
       "name": "Voice"
+    },
+    {
+      "name": "Messages"
     },
     {
       "name": "Auth"

@@ -18,6 +18,9 @@
     <Project Path="src/Modules/Identity/Ovrilo.Modules.Identity.Contracts/Ovrilo.Modules.Identity.Contracts.csproj" />
     <Project Path="src/Modules/Identity/Ovrilo.Modules.Identity/Ovrilo.Modules.Identity.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Messaging/">
+    <Project Path="src/Modules/Messaging/Ovrilo.Modules.Messaging/Ovrilo.Modules.Messaging.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/VoiceSessions/">
     <Project Path="src/Modules/VoiceSessions/Ovrilo.Modules.VoiceSessions/Ovrilo.Modules.VoiceSessions.csproj" />
   </Folder>

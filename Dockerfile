@@ -3,7 +3,7 @@
 # Run:     configuration comes from environment variables (see README "Deployment"); no secrets in the image.
 # Migrate: docker run --rm <env> ovrilo-api migrate   (explicit, authorized operation; exits when done)
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0.400 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.401 AS build
 WORKDIR /src
 
 # Restore first so the layer is cached until a project file changes.
@@ -16,6 +16,7 @@ COPY src/Modules/Communities/Ovrilo.Modules.Communities/Ovrilo.Modules.Communiti
 COPY src/Modules/Channels/Ovrilo.Modules.Channels.Contracts/Ovrilo.Modules.Channels.Contracts.csproj src/Modules/Channels/Ovrilo.Modules.Channels.Contracts/
 COPY src/Modules/Channels/Ovrilo.Modules.Channels/Ovrilo.Modules.Channels.csproj src/Modules/Channels/Ovrilo.Modules.Channels/
 COPY src/Modules/VoiceSessions/Ovrilo.Modules.VoiceSessions/Ovrilo.Modules.VoiceSessions.csproj src/Modules/VoiceSessions/Ovrilo.Modules.VoiceSessions/
+COPY src/Modules/Messaging/Ovrilo.Modules.Messaging/Ovrilo.Modules.Messaging.csproj src/Modules/Messaging/Ovrilo.Modules.Messaging/
 COPY src/Ovrilo.Api/Ovrilo.Api.csproj src/Ovrilo.Api/
 RUN dotnet restore src/Ovrilo.Api/Ovrilo.Api.csproj
 
@@ -24,7 +25,7 @@ COPY src/ src/
 RUN dotnet publish src/Ovrilo.Api/Ovrilo.Api.csproj -c Release -o /app --no-restore \
     -p:OpenApiGenerateDocuments=false -p:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0.11 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.13 AS runtime
 # curl: container health checks (Docker/Coolify). libgssapi-krb5-2: Npgsql probes it at connect
 # time and logs an error without it, although Ovrilo only uses password authentication.
 RUN apt-get update \

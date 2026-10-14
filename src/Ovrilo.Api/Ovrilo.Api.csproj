@@ -27,6 +27,7 @@
     <ProjectReference Include="..\Modules\Communities\Ovrilo.Modules.Communities\Ovrilo.Modules.Communities.csproj" />
     <ProjectReference Include="..\Modules\Channels\Ovrilo.Modules.Channels\Ovrilo.Modules.Channels.csproj" />
     <ProjectReference Include="..\Modules\VoiceSessions\Ovrilo.Modules.VoiceSessions\Ovrilo.Modules.VoiceSessions.csproj" />
+    <ProjectReference Include="..\Modules\Messaging\Ovrilo.Modules.Messaging\Ovrilo.Modules.Messaging.csproj" />
   </ItemGroup>
 
 </Project>

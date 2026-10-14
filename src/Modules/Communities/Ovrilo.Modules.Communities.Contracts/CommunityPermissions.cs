@@ -15,6 +15,7 @@ public enum CommunityPermissions : long
     ManageInvites = 1L << 5,
     ManageCommunity = 1L << 6,
     ManageMembers = 1L << 7,
+    ManageMessages = 1L << 8,
 }
 
 /// <summary>System roles for Phase 01. Custom roles are future, additive work.</summary>
@@ -32,4 +33,10 @@ public interface ICommunitiesModule
     /// when the community does not exist or the user is not an active member.
     /// </summary>
     Task<CommunityPermissions> GetPermissionsAsync(Guid communityId, Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>Live communities where <paramref name="userId"/> is an active member.</summary>
+    Task<IReadOnlyList<Guid>> ListCommunityIdsAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>Active members of a community. No permission check: callers authorize first.</summary>
+    Task<IReadOnlyList<Guid>> ListMemberIdsAsync(Guid communityId, CancellationToken cancellationToken = default);
 }

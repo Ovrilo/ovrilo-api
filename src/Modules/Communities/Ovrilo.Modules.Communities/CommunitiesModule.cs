@@ -113,4 +113,16 @@ internal sealed class CommunitiesModuleApi(CommunitiesDbContext db) : ICommuniti
 
         return role is { } r ? RolePermissions.For(r) : CommunityPermissions.None;
     }
+
+    public async Task<IReadOnlyList<Guid>> ListCommunityIdsAsync(Guid userId, CancellationToken cancellationToken = default) =>
+        await db.Members.AsNoTracking()
+            .Where(m => m.UserId == userId && m.State == MembershipState.Active)
+            .Join(db.Communities.Where(c => c.DeletedAt == null), m => m.CommunityId, c => c.Id, (m, _) => m.CommunityId)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Guid>> ListMemberIdsAsync(Guid communityId, CancellationToken cancellationToken = default) =>
+        await db.Members.AsNoTracking()
+            .Where(m => m.CommunityId == communityId && m.State == MembershipState.Active)
+            .Select(m => m.UserId)
+            .ToListAsync(cancellationToken);
 }

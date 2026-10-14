@@ -1,13 +1,20 @@
+using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.SignalR;
 
+using Ovrilo.Api.Realtime;
 using Ovrilo.Api.System;
+using Ovrilo.BuildingBlocks.Realtime;
 using Ovrilo.Modules.Channels;
 using Ovrilo.Modules.Communities;
 using Ovrilo.Modules.Identity;
+using Ovrilo.Modules.Messaging;
 using Ovrilo.Modules.VoiceSessions;
 
 // `migrate` applies pending schema migrations and exits: an explicit, authorized operation for
@@ -65,14 +72,53 @@ if (behindReverseProxy)
 }
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy
     .WithOrigins(builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [])
-    .WithHeaders("Authorization", "Content-Type")
+    // x-requested-with / x-signalr-user-agent: SignalR negotiate and long-polling requests.
+    .WithHeaders("Authorization", "Content-Type", "X-Requested-With", "X-SignalR-User-Agent")
     .WithMethods("GET", "POST", "PATCH", "DELETE")
+    // Clients show a cooldown from it after 429 Too Many Requests.
+    .WithExposedHeaders("Retry-After")
     .SetPreflightMaxAge(TimeSpan.FromHours(1))));
 
 builder.Services.AddIdentityModule();
 builder.Services.AddCommunitiesModule();
 builder.Services.AddChannelsModule();
 builder.Services.AddVoiceSessionsModule();
+builder.Services.AddMessagingModule();
+
+// Tell rejected clients when to retry (whole seconds, rounded up) so they can show a cooldown.
+builder.Services.AddRateLimiter(options => options.OnRejected = (context, _) =>
+{
+    if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+    {
+        context.HttpContext.Response.Headers.RetryAfter = ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
+    }
+
+    return ValueTask.CompletedTask;
+});
+
+// Realtime (ADR-0007): one hub; modules publish through IRealtimePublisher after committing.
+builder.Services.AddSignalR(options => options.MaximumReceiveMessageSize = 4 * 1024)
+    .AddJsonProtocol(options => options.PayloadSerializerOptions.Converters.Add(
+        new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false)));
+builder.Services.AddSingleton<IRealtimePublisher, SignalRRealtimePublisher>();
+builder.Services.AddSingleton<PresenceTracker>();
+builder.Services.AddSingleton<IUserIdProvider, RealtimeUserIdProvider>();
+// Browsers cannot set headers on WebSockets: accept the access token from the query string,
+// but only for hub requests.
+builder.Services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
+{
+    options.Events ??= new JwtBearerEvents();
+    options.Events.OnMessageReceived = context =>
+    {
+        if (context.HttpContext.Request.Path.StartsWithSegments("/hubs", StringComparison.Ordinal)
+            && context.Request.Query.TryGetValue("access_token", out var token))
+        {
+            context.Token = token;
+        }
+
+        return Task.CompletedTask;
+    };
+});
 
 var app = builder.Build();
 
@@ -106,6 +152,10 @@ app.MapIdentityEndpoints();
 app.MapCommunitiesEndpoints();
 app.MapChannelsEndpoints();
 app.MapVoiceSessionsEndpoints();
+app.MapMessagingEndpoints();
+// Close connections when the access token expires, so revoked sessions stop receiving events;
+// clients reconnect with a fresh token and catch up over REST.
+app.MapHub<RealtimeHub>(RealtimeHub.Path, options => options.CloseOnAuthenticationExpiration = true);
 
 // On startup in development and tests only; production uses the explicit `migrate` command.
 if (migrateOnly || app.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup"))
@@ -113,6 +163,7 @@ if (migrateOnly || app.Configuration.GetValue<bool>("Database:ApplyMigrationsOnS
     await app.Services.MigrateIdentityDatabaseAsync();
     await app.Services.MigrateCommunitiesDatabaseAsync();
     await app.Services.MigrateChannelsDatabaseAsync();
+    await app.Services.MigrateMessagingDatabaseAsync();
 }
 
 if (migrateOnly)
