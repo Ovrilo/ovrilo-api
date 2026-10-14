@@ -6,7 +6,8 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0.401 AS build
 WORKDIR /src
 
-# Restore first so the layer is cached until a project file changes.
+# Restore first so the layer is cached until a project file changes. Every project under src/ must be
+# listed here (DockerfileTests checks it), or the publish step fails without its restore output.
 COPY global.json Directory.Build.props .editorconfig dotnet-tools.json Ovrilo.slnx ./
 COPY src/BuildingBlocks/Ovrilo.BuildingBlocks/Ovrilo.BuildingBlocks.csproj src/BuildingBlocks/Ovrilo.BuildingBlocks/
 COPY src/Modules/Identity/Ovrilo.Modules.Identity.Contracts/Ovrilo.Modules.Identity.Contracts.csproj src/Modules/Identity/Ovrilo.Modules.Identity.Contracts/
@@ -17,6 +18,8 @@ COPY src/Modules/Channels/Ovrilo.Modules.Channels.Contracts/Ovrilo.Modules.Chann
 COPY src/Modules/Channels/Ovrilo.Modules.Channels/Ovrilo.Modules.Channels.csproj src/Modules/Channels/Ovrilo.Modules.Channels/
 COPY src/Modules/VoiceSessions/Ovrilo.Modules.VoiceSessions/Ovrilo.Modules.VoiceSessions.csproj src/Modules/VoiceSessions/Ovrilo.Modules.VoiceSessions/
 COPY src/Modules/Messaging/Ovrilo.Modules.Messaging/Ovrilo.Modules.Messaging.csproj src/Modules/Messaging/Ovrilo.Modules.Messaging/
+COPY src/Modules/Media/Ovrilo.Modules.Media.Contracts/Ovrilo.Modules.Media.Contracts.csproj src/Modules/Media/Ovrilo.Modules.Media.Contracts/
+COPY src/Modules/Media/Ovrilo.Modules.Media/Ovrilo.Modules.Media.csproj src/Modules/Media/Ovrilo.Modules.Media/
 COPY src/Ovrilo.Api/Ovrilo.Api.csproj src/Ovrilo.Api/
 RUN dotnet restore src/Ovrilo.Api/Ovrilo.Api.csproj
 
