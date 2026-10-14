@@ -74,7 +74,7 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy
     .WithOrigins(builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [])
     // x-requested-with / x-signalr-user-agent: SignalR negotiate and long-polling requests.
     .WithHeaders("Authorization", "Content-Type", "X-Requested-With", "X-SignalR-User-Agent")
-    .WithMethods("GET", "POST", "PATCH", "DELETE")
+    .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE")
     // Clients show a cooldown from it after 429 Too Many Requests.
     .WithExposedHeaders("Retry-After")
     .SetPreflightMaxAge(TimeSpan.FromHours(1))));
