@@ -78,6 +78,13 @@ internal sealed class ChannelsModuleApi(ChannelsDbContext db, ICommunitiesModule
     public Task<bool> CanJoinVoiceAsync(Guid channelId, Guid userId, CancellationToken cancellationToken = default) =>
         HasAsync(channelId, userId, ChannelType.Voice, CommunityPermissions.ViewChannels | CommunityPermissions.ConnectVoice, cancellationToken);
 
+    public async Task<IReadOnlyList<Guid>> ListVoiceChannelIdsAsync(Guid communityId, CancellationToken cancellationToken = default) =>
+        await db.Channels.AsNoTracking()
+            .Where(c => c.CommunityId == communityId && c.Type == ChannelType.Voice && c.DeletedAt == null)
+            .OrderBy(c => c.Position).ThenBy(c => c.CreatedAt)
+            .Select(c => c.Id)
+            .ToListAsync(cancellationToken);
+
     private async Task<bool> HasAsync(Guid channelId, Guid userId, ChannelType? requiredType, CommunityPermissions required, CancellationToken cancellationToken)
     {
         var channel = await db.Channels.AsNoTracking()

@@ -16,7 +16,7 @@ internal sealed class TestUser(HttpClient client, AuthResponse auth) : IDisposab
 
     public Guid Id => Auth.User.Id;
 
-    public static async Task<TestUser> RegisterAsync(OvriloApiFactory factory)
+    public static async Task<TestUser> RegisterAsync(Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program> factory)
     {
         var client = factory.CreateClient();
         var auth = await client.RegisterNewAsync();

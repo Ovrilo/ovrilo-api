@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Ovrilo API",
-    "version": "0.4.0"
+    "version": "0.5.0"
   },
   "paths": {
     "/version": {
@@ -306,6 +306,69 @@
           },
           "404": {
             "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/communities/{communityId}/voice-states": {
+      "get": {
+        "tags": [
+          "Voice"
+        ],
+        "summary": "Lists who is in each voice channel of a community the caller can view. Channels nobody is in are omitted.",
+        "operationId": "GetVoiceStates",
+        "parameters": [
+          {
+            "name": "communityId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VoiceChannelStateResponse"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1603,6 +1666,25 @@
           }
         }
       },
+      "VoiceChannelStateResponse": {
+        "required": [
+          "channelId",
+          "participants"
+        ],
+        "type": "object",
+        "properties": {
+          "channelId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "participants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VoiceParticipantResponse"
+            }
+          }
+        }
+      },
       "VoiceJoinResponse": {
         "required": [
           "serverUrl",
@@ -1620,6 +1702,26 @@
           "expiresAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "VoiceParticipantResponse": {
+        "required": [
+          "userId",
+          "displayName",
+          "muted"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "muted": {
+            "type": "boolean"
           }
         }
       }

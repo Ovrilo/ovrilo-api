@@ -10,7 +10,8 @@ namespace Ovrilo.Modules.VoiceSessions;
 
 /// <summary>
 /// Composition entry points for the Voice Sessions module (docs/domain/voice-sessions.md).
-/// Phase 02 issues authorized LiveKit grants only; session/participant tracking comes later.
+/// Issues authorized LiveKit grants and reports channel occupancy from the SFU (no local session
+/// persistence yet; realtime push arrives with SignalR in Phase 04).
 /// </summary>
 public static class VoiceSessionsModule
 {
@@ -22,6 +23,8 @@ public static class VoiceSessionsModule
             .ValidateOnStart();
 
         services.AddSingleton<LiveKitTokenIssuer>();
+        services.AddMemoryCache();
+        services.AddHttpClient<IVoiceRoomDirectory, LiveKitRoomDirectory>(client => client.Timeout = TimeSpan.FromSeconds(3));
         return services;
     }
 
@@ -34,6 +37,14 @@ public static class VoiceSessionsModule
             .WithSummary("Issues a short-lived SFU grant for a voice channel the caller may join. Requires ConnectVoice.")
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
+
+        endpoints.MapGet("/communities/{communityId:guid}/voice-states", GetVoiceStates.HandleAsync)
+            .RequireAuthorization()
+            .WithTags("Voice")
+            .WithName("GetVoiceStates")
+            .WithSummary("Lists who is in each voice channel of a community the caller can view. Channels nobody is in are omitted.")
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
         return endpoints;
     }

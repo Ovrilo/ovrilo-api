@@ -17,4 +17,7 @@ public interface IChannelsModule
 
     /// <summary>True only for voice channels the user may join.</summary>
     Task<bool> CanJoinVoiceAsync(Guid channelId, Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>Non-deleted voice channels of a community, in display order. No permission check: callers authorize first.</summary>
+    Task<IReadOnlyList<Guid>> ListVoiceChannelIdsAsync(Guid communityId, CancellationToken cancellationToken = default);
 }

@@ -12,6 +12,12 @@ internal sealed class LiveKitOptions : IValidatableObject
     [Required]
     public string ServerUrl { get; set; } = string.Empty;
 
+    /// <summary>
+    /// HTTP(S) URL the API uses for LiveKit's server API. Optional: defaults to <see cref="ServerUrl"/>
+    /// with ws→http / wss→https. Set it to an internal address when the API and SFU share a network.
+    /// </summary>
+    public string? ApiUrl { get; set; }
+
     [Required]
     public string ApiKey { get; set; } = string.Empty;
 
@@ -27,6 +33,12 @@ internal sealed class LiveKitOptions : IValidatableObject
         if (!Uri.TryCreate(ServerUrl, UriKind.Absolute, out var url) || url.Scheme is not ("ws" or "wss"))
         {
             yield return new ValidationResult($"{SectionName}:ServerUrl must be a ws:// or wss:// URL.", [nameof(ServerUrl)]);
+        }
+
+        if (!string.IsNullOrEmpty(ApiUrl)
+            && (!Uri.TryCreate(ApiUrl, UriKind.Absolute, out var api) || api.Scheme is not ("http" or "https")))
+        {
+            yield return new ValidationResult($"{SectionName}:ApiUrl must be an http:// or https:// URL.", [nameof(ApiUrl)]);
         }
 
         if (Encoding.UTF8.GetByteCount(ApiSecret) < MinimumApiSecretBytes)
