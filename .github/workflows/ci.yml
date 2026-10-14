@@ -35,6 +35,8 @@ jobs:
           dotnet tool restore
           for project in src/Modules/*/Ovrilo.Modules.*/; do
             case "$project" in *.Contracts/) continue ;; esac
+            # Modules without persistence (e.g. VoiceSessions) have no migrations to check.
+            [ -d "${project}Persistence" ] || continue
             echo "Checking $project"
             dotnet ef migrations has-pending-model-changes --project "$project" --startup-project src/Ovrilo.Api --configuration Release --no-build
           done
