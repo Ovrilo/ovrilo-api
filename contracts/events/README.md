@@ -27,8 +27,12 @@ HTTP is described by `openapi/ovrilo-api.json`; realtime events are described he
 
 | `ReadStateUpdated` | `ReadStateResponse` (`{ channelId, lastReadMessageId }`) | Sent to the reader's own connections when `PUT /channels/{channelId}/read-state` moved their position forward, so other devices clear the unread badge. No channel subscription needed. |
 | `PresenceChanged` | `{ userId: uuid, online: boolean }` | A member of a subscribed community came online (first open connection) or went offline (last connection closed, after a grace period of `Realtime:PresenceGraceSeconds`, default 10, so reconnects do not flicker). |
+| `UserUpdated` | `{ userId: uuid, displayName: string, avatarAssetId: uuid \| null }` | A member of a subscribed community (or the caller, on their other devices) changed their avatar. Refetch the avatar by its new asset ID; `null` means initials. |
+| `CommunityUpdated` | `{ communityId: uuid, name: string, description: string \| null, iconAssetId: uuid \| null }` | A subscribed community's icon changed. |
 
 `MessageResponse` is the OpenAPI schema of the same name.
+
+Asset IDs never change content: a new avatar or icon gets a new ID, so clients can cache image bytes by asset ID and fetch short-lived URLs with `POST /media/download-urls`.
 
 Presence is global per user: a `PresenceChanged` reaches every community the user belongs to, and clients may keep one user → online map. Members list and roles come from `GET /communities/{communityId}/members`.
 

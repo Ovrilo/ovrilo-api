@@ -1,12 +1,14 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 
+using Ovrilo.Api.Tests.Media;
+
 using Testcontainers.PostgreSql;
 
 namespace Ovrilo.Api.Tests;
 
 /// <summary>
-/// Runs the API against a disposable PostgreSQL container with test-only secrets.
+/// Runs the API against disposable PostgreSQL and RustFS containers with test-only secrets.
 /// Shared by all tests in <see cref="SharedApiFixture"/>; tests must use unique data.
 /// </summary>
 public sealed class OvriloApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
@@ -18,9 +20,15 @@ public sealed class OvriloApiFactory : WebApplicationFactory<Program>, IAsyncLif
 
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:17.11-alpine").Build();
 
-    public Task InitializeAsync() => _postgres.StartAsync();
+    public StorageContainer Storage { get; } = StorageContainer.RustFs();
 
-    Task IAsyncLifetime.DisposeAsync() => _postgres.DisposeAsync().AsTask();
+    public Task InitializeAsync() => Task.WhenAll(_postgres.StartAsync(), Storage.StartAsync());
+
+    async Task IAsyncLifetime.DisposeAsync()
+    {
+        await _postgres.DisposeAsync();
+        await Storage.DisposeAsync();
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -34,6 +42,13 @@ public sealed class OvriloApiFactory : WebApplicationFactory<Program>, IAsyncLif
         builder.UseSetting("VoiceSessions:LiveKit:ServerUrl", TestLiveKitUrl);
         builder.UseSetting("VoiceSessions:LiveKit:ApiKey", TestLiveKitKey);
         builder.UseSetting("VoiceSessions:LiveKit:ApiSecret", TestLiveKitSecret);
+        builder.UseSetting("Media:Storage:ServiceUrl", Storage.ServiceUrl.ToString());
+        builder.UseSetting("Media:Storage:Bucket", StorageContainer.Bucket);
+        builder.UseSetting("Media:Storage:AccessKey", StorageContainer.AccessKey);
+        builder.UseSetting("Media:Storage:SecretKey", StorageContainer.SecretKey);
+        builder.UseSetting("Media:RateLimit:PermitLimit", "10000");
+        // Tests run cleanup passes explicitly.
+        builder.UseSetting("Media:Janitor:Enabled", "false");
     }
 }
 

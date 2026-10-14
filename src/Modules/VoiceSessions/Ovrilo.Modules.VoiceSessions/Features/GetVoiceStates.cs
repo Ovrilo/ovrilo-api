@@ -18,7 +18,7 @@ public sealed record VoiceChannelStateResponse(Guid ChannelId, IReadOnlyList<Voi
 /// A user in a voice channel. <c>Muted</c> is their own published microphone mute; deafen is not
 /// signalled to the server yet.
 /// </summary>
-public sealed record VoiceParticipantResponse(Guid UserId, string DisplayName, bool Muted);
+public sealed record VoiceParticipantResponse(Guid UserId, string DisplayName, bool Muted, Guid? AvatarAssetId);
 
 internal static class GetVoiceStates
 {
@@ -74,7 +74,7 @@ internal static class GetVoiceStates
 
             var visible = participants
                 .Select(p => Guid.TryParse(p.Identity, out var id) && users.TryGetValue(id, out var user)
-                    ? new VoiceParticipantResponse(id, user.DisplayName, p.MicrophoneMuted)
+                    ? new VoiceParticipantResponse(id, user.DisplayName, p.MicrophoneMuted, user.AvatarAssetId)
                     : null)
                 .OfType<VoiceParticipantResponse>()
                 .OrderBy(p => p.DisplayName, StringComparer.CurrentCultureIgnoreCase)

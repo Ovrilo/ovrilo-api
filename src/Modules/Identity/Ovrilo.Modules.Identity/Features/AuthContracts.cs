@@ -23,10 +23,21 @@ public sealed record AuthResponse(
     CurrentUserResponse User);
 
 /// <summary>The authenticated caller's own account.</summary>
+/// <param name="AvatarAssetId">Media asset of the profile picture, or null for initials.</param>
 public sealed record CurrentUserResponse(
     Guid Id,
     string Username,
     string DisplayName,
     string Email,
     bool EmailVerified,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    Guid? AvatarAssetId);
+
+/// <summary>Sets the profile picture to a verified upload (purpose <c>avatar</c>) made by the caller.</summary>
+public sealed record SetAvatarRequest(Guid AssetId);
+
+/// <summary>
+/// Realtime <c>UserUpdated</c> payload: a user's public profile changed. Sent to every community they belong to
+/// and to their own other devices.
+/// </summary>
+public sealed record UserUpdatedEvent(Guid UserId, string DisplayName, Guid? AvatarAssetId);

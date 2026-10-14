@@ -14,6 +14,7 @@ using Ovrilo.BuildingBlocks.Realtime;
 using Ovrilo.Modules.Channels;
 using Ovrilo.Modules.Communities;
 using Ovrilo.Modules.Identity;
+using Ovrilo.Modules.Media;
 using Ovrilo.Modules.Messaging;
 using Ovrilo.Modules.VoiceSessions;
 
@@ -31,6 +32,11 @@ if (BuildTimeOpenApi.IsGenerating)
     builder.Configuration["VoiceSessions:LiveKit:ServerUrl"] = "ws://localhost";
     builder.Configuration["VoiceSessions:LiveKit:ApiKey"] = "openapi";
     builder.Configuration["VoiceSessions:LiveKit:ApiSecret"] = BuildTimeOpenApi.PlaceholderSigningKey;
+    builder.Configuration["Media:Storage:ServiceUrl"] = "http://localhost";
+    builder.Configuration["Media:Storage:Bucket"] = "openapi";
+    builder.Configuration["Media:Storage:AccessKey"] = "openapi";
+    builder.Configuration["Media:Storage:SecretKey"] = "openapi";
+    builder.Configuration["Media:Janitor:Enabled"] = "false";
 }
 
 var apiVersion = typeof(Program).Assembly
@@ -84,6 +90,7 @@ builder.Services.AddCommunitiesModule();
 builder.Services.AddChannelsModule();
 builder.Services.AddVoiceSessionsModule();
 builder.Services.AddMessagingModule();
+builder.Services.AddMediaModule();
 
 // Tell rejected clients when to retry (whole seconds, rounded up) so they can show a cooldown.
 builder.Services.AddRateLimiter(options => options.OnRejected = (context, _) =>
@@ -153,6 +160,7 @@ app.MapCommunitiesEndpoints();
 app.MapChannelsEndpoints();
 app.MapVoiceSessionsEndpoints();
 app.MapMessagingEndpoints();
+app.MapMediaEndpoints();
 // Close connections when the access token expires, so revoked sessions stop receiving events;
 // clients reconnect with a fresh token and catch up over REST.
 app.MapHub<RealtimeHub>(RealtimeHub.Path, options => options.CloseOnAuthenticationExpiration = true);
@@ -164,6 +172,7 @@ if (migrateOnly || app.Configuration.GetValue<bool>("Database:ApplyMigrationsOnS
     await app.Services.MigrateCommunitiesDatabaseAsync();
     await app.Services.MigrateChannelsDatabaseAsync();
     await app.Services.MigrateMessagingDatabaseAsync();
+    await app.Services.MigrateMediaDatabaseAsync();
 }
 
 if (migrateOnly)

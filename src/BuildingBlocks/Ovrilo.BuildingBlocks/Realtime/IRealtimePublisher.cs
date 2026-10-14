@@ -10,6 +10,9 @@ public interface IRealtimePublisher
     /// <summary>Sends <paramref name="payload"/> as <paramref name="eventName"/> to everyone subscribed to the channel.</summary>
     Task PublishToChannelAsync(Guid channelId, string eventName, object payload, CancellationToken cancellationToken = default);
 
+    /// <summary>Sends <paramref name="payload"/> to everyone subscribed to the community (its members' open clients).</summary>
+    Task PublishToCommunityAsync(Guid communityId, string eventName, object payload, CancellationToken cancellationToken = default);
+
     /// <summary>Sends <paramref name="payload"/> to every open connection of one user (their other devices).</summary>
     Task PublishToUserAsync(Guid userId, string eventName, object payload, CancellationToken cancellationToken = default);
 }

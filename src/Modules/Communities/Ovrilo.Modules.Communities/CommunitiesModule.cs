@@ -67,6 +67,18 @@ public static class CommunitiesModule
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("Lists active members.");
 
+        communities.MapPut("/{communityId:guid}/icon", CommunityIconEndpoints.SetAsync)
+            .WithName("SetCommunityIcon")
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Sets the community icon to a completed upload made for it. Needs ManageCommunity.");
+
+        communities.MapDelete("/{communityId:guid}/icon", CommunityIconEndpoints.RemoveAsync)
+            .WithName("RemoveCommunityIcon")
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Removes the community icon. Needs ManageCommunity.");
+
         communities.MapPost("/{communityId:guid}/leave", CommunityEndpoints.LeaveAsync)
             .WithName("LeaveCommunity")
             .ProducesProblem(StatusCodes.Status404NotFound)

@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Ovrilo API",
-    "version": "0.6.0"
+    "version": "0.7.0"
   },
   "paths": {
     "/version": {
@@ -33,6 +33,82 @@
         ],
         "summary": "Returns the authenticated account.",
         "operationId": "GetCurrentUser",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUserResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/users/me/avatar": {
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Sets the profile picture to a completed avatar upload. The previous picture is deleted.",
+        "operationId": "SetAvatar",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetAvatarRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Removes the profile picture; initials are shown instead.",
+        "operationId": "RemoveAvatar",
         "responses": {
           "200": {
             "description": "OK",
@@ -920,6 +996,144 @@
         ]
       }
     },
+    "/communities/{communityId}/icon": {
+      "put": {
+        "tags": [
+          "Communities"
+        ],
+        "summary": "Sets the community icon to a completed upload made for it. Needs ManageCommunity.",
+        "operationId": "SetCommunityIcon",
+        "parameters": [
+          {
+            "name": "communityId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetCommunityIconRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Communities"
+        ],
+        "summary": "Removes the community icon. Needs ManageCommunity.",
+        "operationId": "RemoveCommunityIcon",
+        "parameters": [
+          {
+            "name": "communityId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/communities/{communityId}/leave": {
       "post": {
         "tags": [
@@ -1646,6 +1860,204 @@
           }
         ]
       }
+    },
+    "/media/uploads": {
+      "post": {
+        "tags": [
+          "Media"
+        ],
+        "summary": "Starts an image upload and returns a short-lived URL to PUT the file to. Call complete afterwards.",
+        "operationId": "CreateMediaUpload",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/media/uploads/{assetId}/complete": {
+      "post": {
+        "tags": [
+          "Media"
+        ],
+        "summary": "Verifies an uploaded image (size, real format, dimensions) and makes it usable. Safe to retry.",
+        "operationId": "CompleteMediaUpload",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaAssetResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/media/download-urls": {
+      "post": {
+        "tags": [
+          "Media"
+        ],
+        "summary": "Short-lived read URLs for up to 100 images the caller may view (avatars, icons of their communities).",
+        "operationId": "CreateMediaDownloadUrls",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DownloadUrlsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DownloadUrlsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -1778,7 +2190,8 @@
           "description",
           "ownerId",
           "myRole",
-          "createdAt"
+          "createdAt",
+          "iconAssetId"
         ],
         "type": "object",
         "properties": {
@@ -1805,6 +2218,13 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "iconAssetId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -1877,6 +2297,41 @@
           }
         }
       },
+      "CreateUploadRequest": {
+        "required": [
+          "purpose",
+          "contentType",
+          "sizeBytes",
+          "filename",
+          "communityId"
+        ],
+        "type": "object",
+        "properties": {
+          "purpose": {
+            "$ref": "#/components/schemas/MediaPurpose"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "filename": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "communityId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
       "CurrentUserResponse": {
         "required": [
           "id",
@@ -1884,7 +2339,8 @@
           "displayName",
           "email",
           "emailVerified",
-          "createdAt"
+          "createdAt",
+          "avatarAssetId"
         ],
         "type": "object",
         "properties": {
@@ -1907,6 +2363,68 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "avatarAssetId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "DownloadUrl": {
+        "required": [
+          "assetId",
+          "url",
+          "contentType",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "DownloadUrlsRequest": {
+        "required": [
+          "assetIds"
+        ],
+        "type": "object",
+        "properties": {
+          "assetIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "DownloadUrlsResponse": {
+        "required": [
+          "urls"
+        ],
+        "type": "object",
+        "properties": {
+          "urls": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DownloadUrl"
+            }
           }
         }
       },
@@ -2031,6 +2549,47 @@
           }
         }
       },
+      "MediaAssetResponse": {
+        "required": [
+          "id",
+          "purpose",
+          "contentType",
+          "sizeBytes",
+          "width",
+          "height"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "purpose": {
+            "$ref": "#/components/schemas/MediaPurpose"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "width": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "height": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "MediaPurpose": {
+        "enum": [
+          "avatar",
+          "communityIcon"
+        ]
+      },
       "MemberResponse": {
         "required": [
           "userId",
@@ -2038,7 +2597,8 @@
           "displayName",
           "nickname",
           "role",
-          "joinedAt"
+          "joinedAt",
+          "avatarAssetId"
         ],
         "type": "object",
         "properties": {
@@ -2064,13 +2624,21 @@
           "joinedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "avatarAssetId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
       "MessageAuthor": {
         "required": [
           "id",
-          "displayName"
+          "displayName",
+          "avatarAssetId"
         ],
         "type": "object",
         "properties": {
@@ -2083,6 +2651,13 @@
               "null",
               "string"
             ]
+          },
+          "avatarAssetId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -2284,6 +2859,30 @@
           }
         }
       },
+      "SetAvatarRequest": {
+        "required": [
+          "assetId"
+        ],
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "SetCommunityIconRequest": {
+        "required": [
+          "assetId"
+        ],
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
       "UpdateChannelRequest": {
         "required": [
           "name",
@@ -2310,6 +2909,37 @@
               "integer"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "UploadResponse": {
+        "required": [
+          "assetId",
+          "uploadUrl",
+          "contentType",
+          "maxBytes",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uploadUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "maxBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -2371,7 +3001,8 @@
         "required": [
           "userId",
           "displayName",
-          "muted"
+          "muted",
+          "avatarAssetId"
         ],
         "type": "object",
         "properties": {
@@ -2384,6 +3015,13 @@
           },
           "muted": {
             "type": "boolean"
+          },
+          "avatarAssetId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       }
@@ -2418,6 +3056,9 @@
     },
     {
       "name": "Auth"
+    },
+    {
+      "name": "Media"
     }
   ]
 }

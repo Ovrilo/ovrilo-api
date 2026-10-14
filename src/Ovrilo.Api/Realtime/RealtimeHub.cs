@@ -78,6 +78,9 @@ internal sealed class SignalRRealtimePublisher(IHubContext<RealtimeHub> hub, ILo
     public Task PublishToChannelAsync(Guid channelId, string eventName, object payload, CancellationToken cancellationToken = default) =>
         SendAsync(hub.Clients.Group(RealtimeGroups.Channel(channelId)), eventName, channelId, payload, cancellationToken);
 
+    public Task PublishToCommunityAsync(Guid communityId, string eventName, object payload, CancellationToken cancellationToken = default) =>
+        SendAsync(hub.Clients.Group(RealtimeGroups.Community(communityId)), eventName, communityId, payload, cancellationToken);
+
     // Clients.User resolves through RealtimeUserIdProvider: the user ID claim.
     public Task PublishToUserAsync(Guid userId, string eventName, object payload, CancellationToken cancellationToken = default) =>
         SendAsync(hub.Clients.User(userId.ToString()), eventName, userId, payload, cancellationToken);

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Ovrilo.BuildingBlocks\Ovrilo.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\..\Communities\Ovrilo.Modules.Communities.Contracts\Ovrilo.Modules.Communities.Contracts.csproj" />
+    <ProjectReference Include="..\..\Identity\Ovrilo.Modules.Identity.Contracts\Ovrilo.Modules.Identity.Contracts.csproj" />
+    <ProjectReference Include="..\Ovrilo.Modules.Media.Contracts\Ovrilo.Modules.Media.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.S3" Version="4.0.104.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ovrilo.Api.Tests" />
+  </ItemGroup>
+
+</Project>

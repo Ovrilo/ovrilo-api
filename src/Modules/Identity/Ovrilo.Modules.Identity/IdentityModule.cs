@@ -127,6 +127,18 @@ public static class IdentityModule
             .WithName("GetCurrentUser")
             .WithSummary("Returns the authenticated account.");
 
+        endpoints.MapPut("/users/me/avatar", Avatar.SetAsync)
+            .RequireAuthorization()
+            .WithTags("Users")
+            .WithName("SetAvatar")
+            .WithSummary("Sets the profile picture to a completed avatar upload. The previous picture is deleted.");
+
+        endpoints.MapDelete("/users/me/avatar", Avatar.RemoveAsync)
+            .RequireAuthorization()
+            .WithTags("Users")
+            .WithName("RemoveAvatar")
+            .WithSummary("Removes the profile picture; initials are shown instead.");
+
         return endpoints;
     }
 
@@ -140,7 +152,7 @@ internal sealed class IdentityModuleApi(IdentityDbContext db) : IIdentityModule
     public Task<PublicUser?> GetPublicUserAsync(Guid userId, CancellationToken cancellationToken = default) =>
         db.Users.AsNoTracking()
             .Where(u => u.Id == userId && u.Status == UserStatus.Active)
-            .Select(u => new PublicUser(u.Id, u.Username, u.DisplayName))
+            .Select(u => new PublicUser(u.Id, u.Username, u.DisplayName, u.AvatarAssetId))
             .SingleOrDefaultAsync(cancellationToken);
 
     public async Task<IReadOnlyDictionary<Guid, PublicUser>> GetPublicUsersAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken = default)
@@ -148,7 +160,7 @@ internal sealed class IdentityModuleApi(IdentityDbContext db) : IIdentityModule
         ArgumentNullException.ThrowIfNull(userIds);
         return await db.Users.AsNoTracking()
             .Where(u => userIds.Contains(u.Id) && u.Status == UserStatus.Active)
-            .Select(u => new PublicUser(u.Id, u.Username, u.DisplayName))
+            .Select(u => new PublicUser(u.Id, u.Username, u.DisplayName, u.AvatarAssetId))
             .ToDictionaryAsync(u => u.Id, cancellationToken);
     }
 
