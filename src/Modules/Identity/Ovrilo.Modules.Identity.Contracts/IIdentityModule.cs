@@ -14,4 +14,5 @@ public interface IIdentityModule
 }
 
 /// <summary>Non-sensitive account data safe to show to other users.</summary>
-public sealed record PublicUser(Guid Id, string Username, string DisplayName);
+/// <param name="AvatarAssetId">Media asset of the profile picture, or null for initials.</param>
+public sealed record PublicUser(Guid Id, string Username, string DisplayName, Guid? AvatarAssetId);

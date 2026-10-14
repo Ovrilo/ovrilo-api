@@ -19,8 +19,8 @@ public sealed record SendMessageRequest(Guid ClientMessageId, string Content, lo
 
 public sealed record EditMessageRequest(string Content);
 
-/// <summary>Display data for a message author. <c>DisplayName</c> is null when the account no longer exists.</summary>
-public sealed record MessageAuthor(Guid Id, string? DisplayName);
+/// <summary>Display data for a message author. <c>DisplayName</c> and <c>AvatarAssetId</c> are null when the account no longer exists.</summary>
+public sealed record MessageAuthor(Guid Id, string? DisplayName, Guid? AvatarAssetId);
 
 /// <summary>A message. Deleted messages are tombstones: <c>Content</c> is null and <c>DeletedAt</c> is set.</summary>
 public sealed record MessageResponse(
@@ -331,7 +331,9 @@ internal static class MessageEndpoints
             m.Id,
             m.ChannelId,
             m.ClientMessageId,
-            new MessageAuthor(m.AuthorId, authors.TryGetValue(m.AuthorId, out var author) ? author.DisplayName : null),
+            authors.TryGetValue(m.AuthorId, out var author)
+                ? new MessageAuthor(m.AuthorId, author.DisplayName, author.AvatarAssetId)
+                : new MessageAuthor(m.AuthorId, null, null),
             m.DeletedAt is null ? m.Content : null,
             m.ReplyToMessageId,
             m.CreatedAt,

@@ -115,7 +115,7 @@ internal static class CommunityEndpoints
 
         return TypedResults.Ok(members
             .Where(m => users.ContainsKey(m.UserId))
-            .Select(m => new MemberResponse(m.UserId, users[m.UserId].Username, users[m.UserId].DisplayName, m.Nickname, m.Role, m.JoinedAt))
+            .Select(m => new MemberResponse(m.UserId, users[m.UserId].Username, users[m.UserId].DisplayName, m.Nickname, m.Role, m.JoinedAt, users[m.UserId].AvatarAssetId))
             .ToList());
     }
 
@@ -142,7 +142,7 @@ internal static class CommunityEndpoints
     }
 
     public static CommunityResponse ToResponse(Community community, CommunityRole myRole) =>
-        new(community.Id, community.Name, community.Description, community.OwnerId, myRole, community.CreatedAt);
+        new(community.Id, community.Name, community.Description, community.OwnerId, myRole, community.CreatedAt, community.IconAssetId);
 }
 
 internal static class MembershipQueries
