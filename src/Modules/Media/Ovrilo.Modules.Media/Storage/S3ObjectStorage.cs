@@ -32,6 +32,8 @@ internal sealed class S3ObjectStorage : IObjectStorage, IDisposable
         _publicProtocol = publicUrl.Scheme == Uri.UriSchemeHttps ? Protocol.HTTPS : Protocol.HTTP;
     }
 
+    public bool IsAvailable => true;
+
     public string Bucket { get; }
 
     public async Task<Uri> CreateUploadUrlAsync(string key, string contentType, TimeSpan lifetime, CancellationToken cancellationToken = default) =>

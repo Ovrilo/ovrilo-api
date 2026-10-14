@@ -32,10 +32,6 @@ if (BuildTimeOpenApi.IsGenerating)
     builder.Configuration["VoiceSessions:LiveKit:ServerUrl"] = "ws://localhost";
     builder.Configuration["VoiceSessions:LiveKit:ApiKey"] = "openapi";
     builder.Configuration["VoiceSessions:LiveKit:ApiSecret"] = BuildTimeOpenApi.PlaceholderSigningKey;
-    builder.Configuration["Media:Storage:ServiceUrl"] = "http://localhost";
-    builder.Configuration["Media:Storage:Bucket"] = "openapi";
-    builder.Configuration["Media:Storage:AccessKey"] = "openapi";
-    builder.Configuration["Media:Storage:SecretKey"] = "openapi";
     builder.Configuration["Media:Janitor:Enabled"] = "false";
 }
 

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 using Ovrilo.BuildingBlocks.Persistence;
 using Ovrilo.Modules.Identity.Contracts;
@@ -33,10 +34,15 @@ public static class MediaModule
         services.AddModuleDbContext<MediaDbContext>(MediaDbContext.Schema);
         services.AddOptions<StorageOptions>()
             .BindConfiguration(StorageOptions.SectionName)
-            .ValidateDataAnnotations()
+            .Validate(o => o.IsValid, "Media:Storage:Bucket, AccessKey and SecretKey are required when ServiceUrl is set.")
             .ValidateOnStart();
         services.AddOptions<MediaLimits>().BindConfiguration(MediaLimits.SectionName);
-        services.AddSingleton<IObjectStorage, S3ObjectStorage>();
+        // Without storage settings the API runs with media disabled (503) instead of failing to start.
+        services.AddSingleton<IObjectStorage>(provider =>
+        {
+            var options = provider.GetRequiredService<IOptions<StorageOptions>>();
+            return options.Value.IsConfigured ? new S3ObjectStorage(options) : new UnavailableObjectStorage();
+        });
         services.AddScoped<IMediaModule, MediaModuleApi>();
         services.AddSingleton<MediaJanitor>();
         services.AddHostedService(provider => provider.GetRequiredService<MediaJanitor>());
@@ -65,18 +71,21 @@ public static class MediaModule
             .WithSummary("Starts an image upload and returns a short-lived URL to PUT the file to. Call complete afterwards.")
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status429TooManyRequests);
+            .ProducesProblem(StatusCodes.Status429TooManyRequests)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
         media.MapPost("/uploads/{assetId:guid}/complete", MediaEndpoints.CompleteUploadAsync)
             .WithName("CompleteMediaUpload")
             .WithSummary("Verifies an uploaded image (size, real format, dimensions) and makes it usable. Safe to retry.")
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
         media.MapPost("/download-urls", MediaEndpoints.CreateDownloadUrlsAsync)
             .WithName("CreateMediaDownloadUrls")
-            .WithSummary("Short-lived read URLs for up to 100 images the caller may view (avatars, icons of their communities).");
+            .WithSummary("Short-lived read URLs for up to 100 images the caller may view (avatars, icons of their communities).")
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
         return endpoints;
     }

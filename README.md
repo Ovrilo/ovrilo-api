@@ -55,7 +55,7 @@ Endpoints: `GET /health`, `GET /version`; `GET /openapi/v1.json` in Development.
 | `Identity:RateLimit:PermitLimit` / `WindowSeconds` | Per-IP limit for register/login/refresh; defaults 10 / 60 |
 | `Communities:RateLimit:PermitLimit` / `WindowSeconds` | Per-user limit for invitation acceptance; defaults 20 / 60 |
 | `Database:ApplyMigrationsOnStartup` | Development/tests only |
-| `Media:Storage:ServiceUrl` | S3 endpoint the API uses (internal address in production) |
+| `Media:Storage:ServiceUrl` | S3 endpoint the API uses (internal address in production). Unset: the API runs with media disabled (media endpoints answer `503 media.unavailable`); set but incomplete: startup fails |
 | `Media:Storage:PublicUrl` | S3 endpoint the desktop reaches; presigned URLs are signed for it. Defaults to `ServiceUrl` |
 | `Media:Storage:Bucket` / `Region` | Private bucket; region defaults to `us-east-1` |
 | `Media:Storage:AccessKey` / `SecretKey` | Storage credentials (secret) |

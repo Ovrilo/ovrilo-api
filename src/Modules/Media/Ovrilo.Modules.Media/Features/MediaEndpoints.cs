@@ -40,6 +40,9 @@ internal static class MediaProblems
     public static ProblemHttpResult UploadExpired() =>
         ApiProblems.Create(StatusCodes.Status409Conflict, "media.upload_expired", "The upload took too long. Please try again.");
 
+    public static ProblemHttpResult Unavailable() =>
+        ApiProblems.Create(StatusCodes.Status503ServiceUnavailable, "media.unavailable", "Pictures are not available on this server yet.");
+
     public static ProblemHttpResult Rejected(string title) =>
         ApiProblems.Create(StatusCodes.Status422UnprocessableEntity, "media.invalid_image", title);
 }
@@ -58,6 +61,11 @@ internal static class MediaEndpoints
         TimeProvider timeProvider,
         CancellationToken cancellationToken)
     {
+        if (!storage.IsAvailable)
+        {
+            return MediaProblems.Unavailable();
+        }
+
         var userId = principal.GetRequiredUserId();
         var limits = limitsOptions.Value;
 
@@ -158,6 +166,11 @@ internal static class MediaEndpoints
         TimeProvider timeProvider,
         CancellationToken cancellationToken)
     {
+        if (!storage.IsAvailable)
+        {
+            return MediaProblems.Unavailable();
+        }
+
         var userId = principal.GetRequiredUserId();
         var limits = limitsOptions.Value;
         var asset = await db.Assets.SingleOrDefaultAsync(a => a.Id == assetId && a.OwnerId == userId, cancellationToken);
@@ -228,7 +241,7 @@ internal static class MediaEndpoints
         return TypedResults.Ok(ToResponse(asset));
     }
 
-    public static async Task<Results<Ok<DownloadUrlsResponse>, ValidationProblem>> CreateDownloadUrlsAsync(
+    public static async Task<Results<Ok<DownloadUrlsResponse>, ValidationProblem, ProblemHttpResult>> CreateDownloadUrlsAsync(
         DownloadUrlsRequest request,
         ClaimsPrincipal principal,
         MediaDbContext db,
@@ -238,6 +251,11 @@ internal static class MediaEndpoints
         TimeProvider timeProvider,
         CancellationToken cancellationToken)
     {
+        if (!storage.IsAvailable)
+        {
+            return MediaProblems.Unavailable();
+        }
+
         var ids = (request.AssetIds ?? []).Distinct().ToList();
         if (ids.Count > MaxDownloadBatch)
         {

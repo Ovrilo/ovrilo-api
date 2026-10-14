@@ -58,6 +58,11 @@ internal sealed partial class MediaJanitor(
         await using var scope = scopes.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
         var storage = scope.ServiceProvider.GetRequiredService<IObjectStorage>();
+        if (!storage.IsAvailable)
+        {
+            return 0;
+        }
+
         var limits = scope.ServiceProvider.GetRequiredService<IOptions<MediaLimits>>().Value;
         var now = timeProvider.GetDatabaseUtcNow();
 

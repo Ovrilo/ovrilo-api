@@ -9,6 +9,9 @@ internal sealed record StoredObject(long SizeBytes, string? ContentType);
 /// </summary>
 internal interface IObjectStorage
 {
+    /// <summary>False while storage is not configured; callers answer 503 instead of calling the other members.</summary>
+    bool IsAvailable { get; }
+
     /// <summary>Bucket that new objects are written to.</summary>
     string Bucket { get; }
 
@@ -26,4 +29,24 @@ internal interface IObjectStorage
 
     /// <summary>Deletes an object. Succeeds when it does not exist.</summary>
     Task DeleteAsync(string key, CancellationToken cancellationToken = default);
+}
+
+/// <summary>Stand-in while <c>Media:Storage</c> is not configured. Every operation fails; check <see cref="IsAvailable"/> first.</summary>
+internal sealed class UnavailableObjectStorage : IObjectStorage
+{
+    public bool IsAvailable => false;
+
+    public string Bucket => throw NotConfigured();
+
+    public Task<Uri> CreateUploadUrlAsync(string key, string contentType, TimeSpan lifetime, CancellationToken cancellationToken = default) => throw NotConfigured();
+
+    public Task<Uri> CreateDownloadUrlAsync(string key, string contentType, TimeSpan lifetime, CancellationToken cancellationToken = default) => throw NotConfigured();
+
+    public Task<StoredObject?> GetMetadataAsync(string key, CancellationToken cancellationToken = default) => throw NotConfigured();
+
+    public Task<byte[]> ReadPrefixAsync(string key, int length, CancellationToken cancellationToken = default) => throw NotConfigured();
+
+    public Task DeleteAsync(string key, CancellationToken cancellationToken = default) => throw NotConfigured();
+
+    private static InvalidOperationException NotConfigured() => new("Media storage is not configured (Media:Storage:ServiceUrl).");
 }
