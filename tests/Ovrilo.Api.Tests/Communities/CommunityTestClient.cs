@@ -52,5 +52,19 @@ internal sealed class TestUser(HttpClient client, AuthResponse auth) : IDisposab
         return (await response.Content.ReadFromJsonAsync<ChannelResponse>(TestJson.Options))!;
     }
 
+    public async Task<List<ChannelResponse>> ListChannelsAsync(Guid communityId) =>
+        (await Client.GetFromJsonAsync<List<ChannelResponse>>(new Uri($"/communities/{communityId}/channels", UriKind.Relative), TestJson.Options))!;
+
+    /// <summary>The starter channel every new community gets: text <c>general</c> or voice <c>General</c>.</summary>
+    public async Task<ChannelResponse> DefaultChannelAsync(Guid communityId, string type) =>
+        (await ListChannelsAsync(communityId)).Single(c => c.Name.Equals("general", StringComparison.OrdinalIgnoreCase)
+            && c.Type.ToString().Equals(type, StringComparison.OrdinalIgnoreCase));
+
+    public async Task DeleteChannelAsync(Guid channelId)
+    {
+        using var response = await Client.DeleteAsync(new Uri($"/channels/{channelId}", UriKind.Relative));
+        response.EnsureSuccessStatusCode();
+    }
+
     public void Dispose() => Client.Dispose();
 }

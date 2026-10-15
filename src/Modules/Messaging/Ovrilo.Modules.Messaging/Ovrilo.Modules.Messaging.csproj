@@ -11,6 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\BuildingBlocks\Ovrilo.BuildingBlocks\Ovrilo.BuildingBlocks.csproj" />
     <ProjectReference Include="..\..\Channels\Ovrilo.Modules.Channels.Contracts\Ovrilo.Modules.Channels.Contracts.csproj" />
+    <ProjectReference Include="..\..\Communities\Ovrilo.Modules.Communities.Contracts\Ovrilo.Modules.Communities.Contracts.csproj" />
     <ProjectReference Include="..\..\Identity\Ovrilo.Modules.Identity.Contracts\Ovrilo.Modules.Identity.Contracts.csproj" />
   </ItemGroup>
 

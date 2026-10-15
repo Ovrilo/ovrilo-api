@@ -33,6 +33,22 @@ internal sealed class Channel
 
     public DateTimeOffset? DeletedAt { get; set; }
 
+    /// <summary>A new channel; <paramref name="name"/> and <paramref name="topic"/> are already validated.</summary>
+    public static Channel Create(Guid communityId, string name, ChannelType type, string? topic, int position, Guid createdBy, DateTimeOffset now) =>
+        new()
+        {
+            Id = Guid.CreateVersion7(now),
+            CommunityId = communityId,
+            Name = name,
+            NormalizedName = name.ToLowerInvariant(),
+            Type = type,
+            Topic = topic,
+            Position = position,
+            CreatedBy = createdBy,
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+
     public void Rename(string name)
     {
         Name = name;

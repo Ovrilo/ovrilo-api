@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 using Ovrilo.BuildingBlocks.Persistence;
 using Ovrilo.Modules.Channels.Contracts;
+using Ovrilo.Modules.Channels.Domain;
 using Ovrilo.Modules.Channels.Features;
 using Ovrilo.Modules.Channels.Persistence;
 using Ovrilo.Modules.Communities.Contracts;
@@ -49,7 +50,7 @@ public static class ChannelsModule
 
         channels.MapPatch("/", ChannelEndpoints.UpdateAsync)
             .WithName("UpdateChannel")
-            .WithSummary("Renames, re-topics or repositions a channel. Requires ManageChannels.")
+            .WithSummary("Renames, re-topics or moves a channel. Position is its zero-based place among channels of its type; the others shift. Requires ManageChannels.")
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
@@ -67,8 +68,10 @@ public static class ChannelsModule
         services.MigrateModuleAsync<ChannelsDbContext>(cancellationToken);
 }
 
-internal sealed class ChannelsModuleApi(ChannelsDbContext db, ICommunitiesModule communities) : IChannelsModule
+internal sealed class ChannelsModuleApi(ChannelsDbContext db, ICommunitiesModule communities, TimeProvider timeProvider) : IChannelsModule
 {
+    public const string DefaultTextChannelName = "general";
+    public const string DefaultVoiceChannelName = "General";
     public Task<bool> CanReadChannelAsync(Guid channelId, Guid userId, CancellationToken cancellationToken = default) =>
         HasAsync(channelId, userId, requiredType: null, CommunityPermissions.ViewChannels, cancellationToken);
 
@@ -103,6 +106,20 @@ internal sealed class ChannelsModuleApi(ChannelsDbContext db, ICommunitiesModule
             .OrderBy(c => c.Position).ThenBy(c => c.CreatedAt)
             .Select(c => c.Id)
             .ToListAsync(cancellationToken);
+
+    public async Task CreateDefaultChannelsAsync(Guid communityId, Guid createdBy, CancellationToken cancellationToken = default)
+    {
+        if (await db.Channels.AnyAsync(c => c.CommunityId == communityId, cancellationToken))
+        {
+            return;
+        }
+
+        var now = timeProvider.GetDatabaseUtcNow();
+        db.Channels.AddRange(
+            Channel.Create(communityId, DefaultTextChannelName, ChannelType.Text, topic: null, position: 0, createdBy, now),
+            Channel.Create(communityId, DefaultVoiceChannelName, ChannelType.Voice, topic: null, position: 0, createdBy, now));
+        await db.SaveChangesAsync(cancellationToken);
+    }
 
     private async Task<bool> HasAsync(Guid channelId, Guid userId, ChannelType? requiredType, CommunityPermissions required, CancellationToken cancellationToken)
     {

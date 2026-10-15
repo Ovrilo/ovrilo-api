@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 using Ovrilo.BuildingBlocks;
 using Ovrilo.BuildingBlocks.Persistence;
+using Ovrilo.BuildingBlocks.Realtime;
 using Ovrilo.Modules.Channels.Contracts;
 using Ovrilo.Modules.Channels.Domain;
 using Ovrilo.Modules.Channels.Persistence;
@@ -16,7 +17,11 @@ namespace Ovrilo.Modules.Channels.Features;
 
 public sealed record CreateChannelRequest(string Name, ChannelType Type, string? Topic);
 
-/// <summary>Partial update; omitted (null) fields are unchanged. An empty topic clears it.</summary>
+/// <summary>
+/// Partial update; omitted (null) fields are unchanged. An empty topic clears it. <paramref name="Position"/> is the
+/// zero-based place among the community's channels of the same type; the others shift, and a value past the end moves
+/// the channel last.
+/// </summary>
 public sealed record UpdateChannelRequest(string? Name, string? Topic, int? Position);
 
 public sealed record ChannelResponse(
@@ -27,6 +32,26 @@ public sealed record ChannelResponse(
     string? Topic,
     int Position,
     DateTimeOffset CreatedAt);
+
+public enum ChannelChange
+{
+    Created,
+    Updated,
+    Deleted,
+}
+
+/// <summary>
+/// Something about the community's channel list changed: refetch <c>GET /communities/{communityId}/channels</c>.
+/// A move renumbers other channels too, so clients should not patch their list from this payload.
+/// </summary>
+public sealed record ChannelsChangedEvent(Guid CommunityId, Guid ChannelId, ChannelChange Change);
+
+/// <summary>Realtime event names (contracts/events/README.md).</summary>
+public static class ChannelEvents
+{
+    /// <summary>Payload: <see cref="ChannelsChangedEvent"/>. Sent to the community.</summary>
+    public const string ChannelsChanged = "ChannelsChanged";
+}
 
 internal static class ChannelProblems
 {
@@ -73,6 +98,7 @@ internal static class ChannelEndpoints
         ClaimsPrincipal principal,
         ChannelsDbContext db,
         ICommunitiesModule communities,
+        IRealtimePublisher realtime,
         TimeProvider timeProvider,
         CancellationToken cancellationToken)
     {
@@ -108,19 +134,7 @@ internal static class ChannelEndpoints
             .Where(c => c.CommunityId == communityId && c.Type == request.Type && c.DeletedAt == null)
             .MaxAsync(c => (int?)c.Position, cancellationToken) ?? -1;
 
-        var channel = new Channel
-        {
-            Id = Guid.CreateVersion7(now),
-            CommunityId = communityId,
-            Name = name,
-            NormalizedName = name.ToLowerInvariant(),
-            Type = request.Type,
-            Topic = topic,
-            Position = nextPosition + 1,
-            CreatedBy = userId,
-            CreatedAt = now,
-            UpdatedAt = now,
-        };
+        var channel = Channel.Create(communityId, name, request.Type, topic, nextPosition + 1, userId, now);
         db.Channels.Add(channel);
 
         try
@@ -132,6 +146,7 @@ internal static class ChannelEndpoints
             return ChannelProblems.NameTaken();
         }
 
+        await PublishChangedAsync(realtime, channel, ChannelChange.Created, cancellationToken);
         return TypedResults.Created($"/channels/{channel.Id}", ToResponse(channel));
     }
 
@@ -158,6 +173,7 @@ internal static class ChannelEndpoints
         ClaimsPrincipal principal,
         ChannelsDbContext db,
         ICommunitiesModule communities,
+        IRealtimePublisher realtime,
         TimeProvider timeProvider,
         CancellationToken cancellationToken)
     {
@@ -183,14 +199,9 @@ internal static class ChannelEndpoints
             channel!.Topic = topic;
         }
 
-        if (request.Position is { } position)
+        if (request.Position < 0)
         {
-            if (position < 0)
-            {
-                errors["position"] = ["Position must be zero or greater."];
-            }
-
-            channel!.Position = position;
+            errors["position"] = ["Position must be zero or greater."];
         }
 
         if (errors.Count > 0)
@@ -198,7 +209,13 @@ internal static class ChannelEndpoints
             return ApiProblems.Validation(errors);
         }
 
-        channel!.UpdatedAt = timeProvider.GetDatabaseUtcNow();
+        var now = timeProvider.GetDatabaseUtcNow();
+        channel!.UpdatedAt = now;
+        if (request.Position is { } position)
+        {
+            await MoveAsync(db, channel, position, now, cancellationToken);
+        }
+
         try
         {
             await db.SaveChangesAsync(cancellationToken);
@@ -208,15 +225,21 @@ internal static class ChannelEndpoints
             return ChannelProblems.NameTaken();
         }
 
+        await PublishChangedAsync(realtime, channel, ChannelChange.Updated, cancellationToken);
         return TypedResults.Ok(ToResponse(channel));
     }
 
-    /// <summary>Soft-deletes the channel. Message retention and active voice ejection are coordinated in later phases.</summary>
+    /// <summary>
+    /// Soft-deletes the channel. Its messages stay unreadable (every check excludes deleted channels) and new voice joins
+    /// are refused; clients connected to a deleted voice channel leave it on <see cref="ChannelEvents.ChannelsChanged"/>.
+    /// Message retention and server-side voice ejection are coordinated in later phases.
+    /// </summary>
     public static async Task<Results<NoContent, ProblemHttpResult>> DeleteAsync(
         Guid channelId,
         ClaimsPrincipal principal,
         ChannelsDbContext db,
         ICommunitiesModule communities,
+        IRealtimePublisher realtime,
         TimeProvider timeProvider,
         CancellationToken cancellationToken)
     {
@@ -231,8 +254,35 @@ internal static class ChannelEndpoints
         channel!.DeletedAt = now;
         channel.UpdatedAt = now;
         await db.SaveChangesAsync(cancellationToken);
+        await PublishChangedAsync(realtime, channel, ChannelChange.Deleted, cancellationToken);
         return TypedResults.NoContent();
     }
+
+    /// <summary>Puts the channel at <paramref name="index"/> among the live channels of its type and renumbers them 0..n-1.</summary>
+    private static async Task MoveAsync(ChannelsDbContext db, Channel channel, int index, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var ordered = await db.Channels
+            .Where(c => c.CommunityId == channel.CommunityId && c.Type == channel.Type && c.DeletedAt == null && c.Id != channel.Id)
+            .OrderBy(c => c.Position).ThenBy(c => c.CreatedAt)
+            .ToListAsync(cancellationToken);
+        ordered.Insert(Math.Min(index, ordered.Count), channel);
+        for (var i = 0; i < ordered.Count; i++)
+        {
+            if (ordered[i].Position != i)
+            {
+                ordered[i].Position = i;
+                ordered[i].UpdatedAt = now;
+            }
+        }
+    }
+
+    /// <summary>After the commit (ADR-0007: persist, then publish).</summary>
+    private static Task PublishChangedAsync(IRealtimePublisher realtime, Channel channel, ChannelChange change, CancellationToken cancellationToken) =>
+        realtime.PublishToCommunityAsync(
+            channel.CommunityId,
+            ChannelEvents.ChannelsChanged,
+            new ChannelsChangedEvent(channel.CommunityId, channel.Id, change),
+            cancellationToken);
 
     private static async Task<ProblemHttpResult?> AuthorizeManageAsync(
         Channel? channel,

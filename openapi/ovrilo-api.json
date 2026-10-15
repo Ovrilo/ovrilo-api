@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Ovrilo API",
-    "version": "0.7.0"
+    "version": "0.8.0"
   },
   "paths": {
     "/version": {
@@ -539,7 +539,7 @@
         "tags": [
           "Messages"
         ],
-        "summary": "Read position, newest message and unread count (capped at 100) of each readable text channel.",
+        "summary": "Read position, newest message and unread count (capped at 100) of each readable text channel. History from before the caller joined counts as read.",
         "operationId": "ListCommunityUnread",
         "parameters": [
           {
@@ -819,7 +819,7 @@
         "tags": [
           "Communities"
         ],
-        "summary": "Creates a private community owned by the caller.",
+        "summary": "Creates a private community owned by the caller, with a text channel `general` and a voice channel `General`.",
         "operationId": "CreateCommunity",
         "requestBody": {
           "content": {
@@ -1382,7 +1382,7 @@
         "tags": [
           "Channels"
         ],
-        "summary": "Renames, re-topics or repositions a channel. Requires ManageChannels.",
+        "summary": "Renames, re-topics or moves a channel. Position is its zero-based place among channels of its type; the others shift. Requires ManageChannels.",
         "operationId": "UpdateChannel",
         "parameters": [
           {

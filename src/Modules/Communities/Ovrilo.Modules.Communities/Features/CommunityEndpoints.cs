@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 using Ovrilo.BuildingBlocks;
 using Ovrilo.BuildingBlocks.Persistence;
+using Ovrilo.Modules.Channels.Contracts;
 using Ovrilo.Modules.Communities.Contracts;
 using Ovrilo.Modules.Communities.Domain;
 using Ovrilo.Modules.Communities.Persistence;
@@ -19,6 +20,7 @@ internal static class CommunityEndpoints
         CreateCommunityRequest request,
         ClaimsPrincipal principal,
         CommunitiesDbContext db,
+        IChannelsModule channels,
         TimeProvider timeProvider,
         CancellationToken cancellationToken)
     {
@@ -64,6 +66,7 @@ internal static class CommunityEndpoints
             JoinedAt = now,
         });
         await db.SaveChangesAsync(cancellationToken);
+        await channels.CreateDefaultChannelsAsync(community.Id, userId, cancellationToken);
 
         return TypedResults.Created($"/communities/{community.Id}", ToResponse(community, CommunityRole.Owner));
     }
