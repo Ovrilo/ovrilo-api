@@ -21,6 +21,9 @@ public interface IChannelsModule
     /// <summary>True only for voice channels the user may join.</summary>
     Task<bool> CanJoinVoiceAsync(Guid channelId, Guid userId, CancellationToken cancellationToken = default);
 
+    /// <summary>True only for voice channels the user may join and share their screen in.</summary>
+    Task<bool> CanShareScreenAsync(Guid channelId, Guid userId, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Text channels of a community the user may read, in display order; null when the community
     /// does not exist or the user may not view its channels.

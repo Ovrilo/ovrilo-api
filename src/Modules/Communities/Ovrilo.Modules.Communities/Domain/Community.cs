@@ -65,7 +65,8 @@ internal static class RolePermissions
         CommunityPermissions.ViewChannels
         | CommunityPermissions.SendMessages
         | CommunityPermissions.ConnectVoice
-        | CommunityPermissions.CreateInvites;
+        | CommunityPermissions.CreateInvites
+        | CommunityPermissions.ShareScreen;
 
     private const CommunityPermissions OwnerPermissions =
         MemberPermissions

@@ -22,6 +22,7 @@ public static class VoiceSessionsModule
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        services.AddOptions<ScreenSharingOptions>().BindConfiguration(ScreenSharingOptions.SectionName);
         services.AddSingleton<LiveKitTokenIssuer>();
         services.AddMemoryCache();
         services.AddHttpClient<IVoiceRoomDirectory, LiveKitRoomDirectory>(client => client.Timeout = TimeSpan.FromSeconds(3));
@@ -34,7 +35,15 @@ public static class VoiceSessionsModule
             .RequireAuthorization()
             .WithTags("Voice")
             .WithName("JoinVoiceChannel")
-            .WithSummary("Issues a short-lived SFU grant for a voice channel the caller may join. Requires ConnectVoice.")
+            .WithSummary("Issues a short-lived SFU grant for a voice channel the caller may join. Requires ConnectVoice; screen-share sources are added with ShareScreen while the server has screen sharing on.")
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        endpoints.MapPost("/channels/{channelId:guid}/voice/watch", WatchScreenShares.HandleAsync)
+            .RequireAuthorization()
+            .WithTags("Voice")
+            .WithName("WatchVoiceChannelScreenShares")
+            .WithSummary("Issues a short-lived, hidden, subscribe-only SFU grant for watching screen shares in a voice channel. Same rights as joining; 403 voice.screen_share_disabled while the server has screen sharing off.")
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
 

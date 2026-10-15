@@ -62,6 +62,7 @@ Endpoints: `GET /health`, `GET /version`; `GET /openapi/v1.json` in Development.
 | `Media:Limits:*` | `ImageMaxBytes` 8 MB, `ImageMaxDimension` 4096, `MaxPendingUploadsPerUser` 5, URL lifetimes (upload 300 s, download 900 s), `UnattachedRetentionHours` 24 |
 | `Media:RateLimit:PermitLimit` / `WindowSeconds` | Per-user limit for starting uploads; defaults 20 / 60 |
 | `Media:Janitor:Enabled` / `IntervalSeconds` | Cleanup of abandoned, unused, rejected and released uploads; defaults on / 300 |
+| `VoiceSessions:ScreenSharing:Enabled` | Runtime switch for screen sharing (ADR-0017). Default `true` (desktop 0.6.0 and later share and watch; older desktops ignore it). `false` (`VoiceSessions__ScreenSharing__Enabled=false`) turns it off: join grants publish only the microphone and `POST /channels/{id}/voice/watch` answers `403 voice.screen_share_disabled`; running shares stop at the next join. Each viewer of a share receives up to 9 Mbps from LiveKit, so watch the server's egress. Remove the switch once the ADR is accepted |
 
 ## Architecture rules
 

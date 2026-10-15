@@ -51,7 +51,11 @@ public sealed class VoiceJoinTests(OvriloApiFactory factory)
         Assert.True(grants.GetProperty("canPublish").GetBoolean());
         Assert.True(grants.GetProperty("canSubscribe").GetBoolean());
         Assert.False(grants.GetProperty("canPublishData").GetBoolean());
-        Assert.Equal(["microphone"], grants.GetProperty("canPublishSources").EnumerateArray().Select(s => s.GetString()));
+        // Screen sharing is on by default (ADR-0017); members may publish their screen and its sound.
+        Assert.True(grant.CanShareScreen);
+        Assert.Equal(
+            ["microphone", "screen_share", "screen_share_audio"],
+            grants.GetProperty("canPublishSources").EnumerateArray().Select(s => s.GetString()));
         Assert.False(grants.TryGetProperty("roomAdmin", out _));
     }
 

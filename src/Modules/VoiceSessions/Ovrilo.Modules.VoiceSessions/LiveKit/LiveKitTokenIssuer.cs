@@ -10,23 +10,56 @@ internal sealed record LiveKitGrant(string ServerUrl, string Token, string RoomN
 
 /// <summary>
 /// Issues LiveKit access tokens (HS256 JWT signed with the API secret; https://docs.livekit.io/home/get-started/authentication/).
-/// Grants are limited to joining one room and publishing the microphone.
+/// Grants are limited to one room: the voice grant publishes the microphone (and, when allowed, the screen share and its
+/// audio); the viewer grant only subscribes.
 /// </summary>
 internal sealed class LiveKitTokenIssuer(IOptions<LiveKitOptions> options, TimeProvider timeProvider)
 {
-    private static readonly string[] PublishSources = ["microphone"];
+    private static readonly string[] VoiceSources = ["microphone"];
+    private static readonly string[] VoiceAndScreenSources = ["microphone", "screen_share", "screen_share_audio"];
+
+    /// <summary>Suffix of the identity of a client's second, watch-only connection (ADR-0017).</summary>
+    public const string ViewerIdentitySuffix = "#viewer";
 
     private readonly JsonWebTokenHandler _handler = new() { SetDefaultTimesOnTokenCreation = false };
 
     /// <summary>Opaque room name; it is never an authorization credential.</summary>
     public static string RoomName(Guid channelId) => $"channel_{channelId:N}";
 
-    public LiveKitGrant IssueVoiceGrant(Guid channelId, Guid userId, string displayName)
+    /// <summary>The voice engine's connection: identity is the user ID.</summary>
+    public LiveKitGrant IssueVoiceGrant(Guid channelId, Guid userId, string displayName, bool canShareScreen = false) =>
+        Issue(channelId, userId.ToString(), displayName, new Dictionary<string, object>
+        {
+            ["canPublish"] = true,
+            ["canSubscribe"] = true,
+            ["canPublishData"] = false,
+            ["canPublishSources"] = canShareScreen ? VoiceAndScreenSources : VoiceSources,
+        });
+
+    /// <summary>
+    /// The webview's watch-only connection for screen-share video: its own identity (one identity per connection),
+    /// hidden from other participants and unable to publish anything.
+    /// </summary>
+    public LiveKitGrant IssueViewerGrant(Guid channelId, Guid userId, string displayName) =>
+        Issue(channelId, userId + ViewerIdentitySuffix, displayName, new Dictionary<string, object>
+        {
+            ["canPublish"] = false,
+            ["canSubscribe"] = true,
+            ["canPublishData"] = false,
+            ["hidden"] = true,
+        });
+
+    private LiveKitGrant Issue(Guid channelId, string identity, string displayName, Dictionary<string, object> permissions)
     {
         var liveKit = options.Value;
         var now = timeProvider.GetUtcNow();
         var expiresAt = now.AddMinutes(liveKit.TokenLifetimeMinutes);
         var room = RoomName(channelId);
+        var video = new Dictionary<string, object>(permissions)
+        {
+            ["room"] = room,
+            ["roomJoin"] = true,
+        };
 
         var token = _handler.CreateToken(new SecurityTokenDescriptor
         {
@@ -35,18 +68,10 @@ internal sealed class LiveKitTokenIssuer(IOptions<LiveKitOptions> options, TimeP
             Expires = expiresAt.UtcDateTime,
             Claims = new Dictionary<string, object>
             {
-                [JwtRegisteredClaimNames.Sub] = userId.ToString(),
+                [JwtRegisteredClaimNames.Sub] = identity,
                 [JwtRegisteredClaimNames.Jti] = Guid.NewGuid().ToString("N"),
                 ["name"] = displayName,
-                ["video"] = new Dictionary<string, object>
-                {
-                    ["room"] = room,
-                    ["roomJoin"] = true,
-                    ["canPublish"] = true,
-                    ["canSubscribe"] = true,
-                    ["canPublishData"] = false,
-                    ["canPublishSources"] = PublishSources,
-                },
+                ["video"] = video,
             },
             SigningCredentials = new SigningCredentials(CreateSigningKey(liveKit), SecurityAlgorithms.HmacSha256),
         });

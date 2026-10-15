@@ -9,8 +9,11 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace Ovrilo.Modules.VoiceSessions.LiveKit;
 
-/// <summary>A participant currently in an SFU room. <c>Identity</c> is the user ID issued in the grant.</summary>
-public sealed record RoomParticipant(string Identity, bool MicrophoneMuted);
+/// <summary>
+/// A participant currently in an SFU room. <c>Identity</c> is the user ID issued in the grant; <c>ScreenSharing</c>
+/// means a screen-share video track is published (ADR-0017).
+/// </summary>
+public sealed record RoomParticipant(string Identity, bool MicrophoneMuted, bool ScreenSharing = false);
 
 /// <summary>Who is in which SFU room. The LiveKit implementation is replaced in tests.</summary>
 public interface IVoiceRoomDirectory
@@ -85,7 +88,8 @@ internal sealed class LiveKitRoomDirectory(
                     .Where(p => p.State is "JOINED" or "ACTIVE" && !string.IsNullOrEmpty(p.Identity))
                     .Select(p => new RoomParticipant(
                         p.Identity!,
-                        p.Tracks?.Any(t => t.Source == "MICROPHONE" && t.Muted) ?? false))
+                        p.Tracks?.Any(t => t.Source == "MICROPHONE" && t.Muted) ?? false,
+                        p.Tracks?.Any(t => t.Source == "SCREEN_SHARE") ?? false))
                     .ToList() ?? Empty;
             }
 

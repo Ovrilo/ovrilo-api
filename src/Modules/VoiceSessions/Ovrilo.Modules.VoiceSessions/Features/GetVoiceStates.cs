@@ -16,9 +16,9 @@ public sealed record VoiceChannelStateResponse(Guid ChannelId, IReadOnlyList<Voi
 
 /// <summary>
 /// A user in a voice channel. <c>Muted</c> is their own published microphone mute; deafen is not
-/// signalled to the server yet.
+/// signalled to the server yet. <c>ScreenSharing</c>: they are sharing their screen (watch it with the watch grant).
 /// </summary>
-public sealed record VoiceParticipantResponse(Guid UserId, string DisplayName, bool Muted, Guid? AvatarAssetId);
+public sealed record VoiceParticipantResponse(Guid UserId, string DisplayName, bool Muted, Guid? AvatarAssetId, bool ScreenSharing);
 
 internal static class GetVoiceStates
 {
@@ -55,7 +55,8 @@ internal static class GetVoiceStates
             return ApiProblems.Create(StatusCodes.Status503ServiceUnavailable, "voice.sfu_unavailable", "Voice server is unavailable.");
         }
 
-        // Identities are user IDs from our own grants; anything else is ignored.
+        // Identities are user IDs from our own grants; anything else (such as "{userId}#viewer" watch-only
+        // connections) is ignored.
         var userIds = occupied.Values.SelectMany(p => p)
             .Select(p => Guid.TryParse(p.Identity, out var id) ? id : Guid.Empty)
             .Where(id => id != Guid.Empty)
@@ -74,7 +75,7 @@ internal static class GetVoiceStates
 
             var visible = participants
                 .Select(p => Guid.TryParse(p.Identity, out var id) && users.TryGetValue(id, out var user)
-                    ? new VoiceParticipantResponse(id, user.DisplayName, p.MicrophoneMuted, user.AvatarAssetId)
+                    ? new VoiceParticipantResponse(id, user.DisplayName, p.MicrophoneMuted, user.AvatarAssetId, p.ScreenSharing)
                     : null)
                 .OfType<VoiceParticipantResponse>()
                 .OrderBy(p => p.DisplayName, StringComparer.CurrentCultureIgnoreCase)

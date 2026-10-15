@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Ovrilo API",
-    "version": "0.9.0"
+    "version": "0.10.0"
   },
   "paths": {
     "/version": {
@@ -346,7 +346,7 @@
         "tags": [
           "Voice"
         ],
-        "summary": "Issues a short-lived SFU grant for a voice channel the caller may join. Requires ConnectVoice.",
+        "summary": "Issues a short-lived SFU grant for a voice channel the caller may join. Requires ConnectVoice; screen-share sources are added with ShareScreen while the server has screen sharing on.",
         "operationId": "JoinVoiceChannel",
         "parameters": [
           {
@@ -366,6 +366,66 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VoiceJoinResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/channels/{channelId}/voice/watch": {
+      "post": {
+        "tags": [
+          "Voice"
+        ],
+        "summary": "Issues a short-lived, hidden, subscribe-only SFU grant for watching screen shares in a voice channel. Same rights as joining; 403 voice.screen_share_disabled while the server has screen sharing off.",
+        "operationId": "WatchVoiceChannelScreenShares",
+        "parameters": [
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceWatchResponse"
                 }
               }
             }
@@ -3161,7 +3221,8 @@
         "required": [
           "serverUrl",
           "token",
-          "expiresAt"
+          "expiresAt",
+          "canShareScreen"
         ],
         "type": "object",
         "properties": {
@@ -3174,6 +3235,9 @@
           "expiresAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "canShareScreen": {
+            "type": "boolean"
           }
         }
       },
@@ -3182,7 +3246,8 @@
           "userId",
           "displayName",
           "muted",
-          "avatarAssetId"
+          "avatarAssetId",
+          "screenSharing"
         ],
         "type": "object",
         "properties": {
@@ -3202,6 +3267,29 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "screenSharing": {
+            "type": "boolean"
+          }
+        }
+      },
+      "VoiceWatchResponse": {
+        "required": [
+          "serverUrl",
+          "token",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "serverUrl": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       }
