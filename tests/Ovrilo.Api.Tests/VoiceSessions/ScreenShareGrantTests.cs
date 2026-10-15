@@ -13,17 +13,19 @@ using Ovrilo.Modules.VoiceSessions.Features;
 
 namespace Ovrilo.Api.Tests.VoiceSessions;
 
-/// <summary>Screen-share grants (ADR-0017) behind the <c>VoiceSessions:ScreenSharing:Enabled</c> flag.</summary>
+/// <summary>Screen-share grants (ADR-0017), on unless <c>VoiceSessions:ScreenSharing:Enabled</c> is false.</summary>
 [Collection(SharedApiFixture.Name)]
 public sealed class ScreenShareGrantTests(OvriloApiFactory factory)
 {
-    private WebApplicationFactory<Program> Enabled => factory.WithWebHostBuilder(builder =>
-        builder.UseSetting("VoiceSessions:ScreenSharing:Enabled", "true"));
+    private WebApplicationFactory<Program> Enabled => factory;
+
+    private WebApplicationFactory<Program> Disabled => factory.WithWebHostBuilder(builder =>
+        builder.UseSetting("VoiceSessions:ScreenSharing:Enabled", "false"));
 
     [Fact]
     public async Task WhileTheFlagIsOffGrantsStayMicrophoneOnlyAndWatchingIsRefused()
     {
-        using var owner = await TestUser.RegisterAsync(factory);
+        using var owner = await TestUser.RegisterAsync(Disabled);
         var community = await owner.CreateCommunityAsync();
         var voice = await owner.DefaultChannelAsync(community.Id, "voice");
 
