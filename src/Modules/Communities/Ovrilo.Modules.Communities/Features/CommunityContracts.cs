@@ -4,6 +4,9 @@ namespace Ovrilo.Modules.Communities.Features;
 
 public sealed record CreateCommunityRequest(string Name, string? Description);
 
+/// <summary>Partial update; omitted (null) fields are unchanged. An empty description clears it.</summary>
+public sealed record UpdateCommunityRequest(string? Name, string? Description);
+
 /// <summary>A community as seen by one of its members.</summary>
 /// <param name="MyRole">The caller's role in this community.</param>
 /// <param name="IconAssetId">Media asset of the community icon, or null for initials.</param>
@@ -31,6 +34,9 @@ public sealed record SetCommunityIconRequest(Guid AssetId);
 
 /// <summary>Realtime <c>CommunityUpdated</c> payload: name, description or icon changed. Sent to the community.</summary>
 public sealed record CommunityUpdatedEvent(Guid CommunityId, string Name, string? Description, Guid? IconAssetId);
+
+/// <summary>Realtime <c>CommunityDeleted</c> payload: the owner deleted the community. Sent to the community.</summary>
+public sealed record CommunityDeletedEvent(Guid CommunityId);
 
 /// <summary>Creates an expiring invitation.</summary>
 /// <param name="MaxUses">1-100 uses; omitted means single-use.</param>

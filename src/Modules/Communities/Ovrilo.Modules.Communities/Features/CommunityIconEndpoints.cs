@@ -19,6 +19,9 @@ public static class CommunityEvents
 {
     /// <summary>Payload: <see cref="CommunityUpdatedEvent"/>.</summary>
     public const string CommunityUpdated = "CommunityUpdated";
+
+    /// <summary>Payload: <see cref="CommunityDeletedEvent"/>.</summary>
+    public const string CommunityDeleted = "CommunityDeleted";
 }
 
 internal static class CommunityIconEndpoints

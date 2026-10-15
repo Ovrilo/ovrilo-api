@@ -62,6 +62,18 @@ public static class CommunitiesModule
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("Returns a community the caller is a member of.");
 
+        communities.MapPatch("/{communityId:guid}", CommunityEndpoints.UpdateAsync)
+            .WithName("UpdateCommunity")
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Renames the community or changes its description. Needs ManageCommunity.");
+
+        communities.MapDelete("/{communityId:guid}", CommunityEndpoints.DeleteAsync)
+            .WithName("DeleteCommunity")
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Deletes the community for everyone. Owner only; cannot be undone.");
+
         communities.MapGet("/{communityId:guid}/members", CommunityEndpoints.ListMembersAsync)
             .WithName("ListCommunityMembers")
             .ProducesProblem(StatusCodes.Status404NotFound)
