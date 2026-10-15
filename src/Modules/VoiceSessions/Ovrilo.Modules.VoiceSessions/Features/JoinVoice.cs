@@ -2,6 +2,7 @@ using System.Security.Claims;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.Options;
 
 using Ovrilo.BuildingBlocks;
 using Ovrilo.Modules.Channels.Contracts;
@@ -14,7 +15,8 @@ namespace Ovrilo.Modules.VoiceSessions.Features;
 /// Short-lived credentials for connecting the voice engine to the channel's SFU room.
 /// The token is a secret: clients hand it to the voice engine and never log or persist it.
 /// </summary>
-public sealed record VoiceJoinResponse(string ServerUrl, string Token, DateTimeOffset ExpiresAt);
+/// <param name="CanShareScreen">The grant also allows publishing a screen share and its audio (ADR-0017).</param>
+public sealed record VoiceJoinResponse(string ServerUrl, string Token, DateTimeOffset ExpiresAt, bool CanShareScreen);
 
 internal static class JoinVoice
 {
@@ -24,6 +26,7 @@ internal static class JoinVoice
         IChannelsModule channels,
         IIdentityModule identity,
         LiveKitTokenIssuer issuer,
+        IOptions<ScreenSharingOptions> screenSharing,
         CancellationToken cancellationToken)
     {
         var userId = principal.GetRequiredUserId();
@@ -39,7 +42,8 @@ internal static class JoinVoice
             return ApiProblems.Create(StatusCodes.Status403Forbidden, "voice.permission_denied", "You cannot join voice in this channel.");
         }
 
-        var grant = issuer.IssueVoiceGrant(channelId, userId, user.DisplayName);
-        return TypedResults.Ok(new VoiceJoinResponse(grant.ServerUrl, grant.Token, grant.ExpiresAt));
+        var canShare = screenSharing.Value.Enabled && await channels.CanShareScreenAsync(channelId, userId, cancellationToken);
+        var grant = issuer.IssueVoiceGrant(channelId, userId, user.DisplayName, canShare);
+        return TypedResults.Ok(new VoiceJoinResponse(grant.ServerUrl, grant.Token, grant.ExpiresAt, canShare));
     }
 }

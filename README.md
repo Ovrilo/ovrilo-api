@@ -62,6 +62,7 @@ Endpoints: `GET /health`, `GET /version`; `GET /openapi/v1.json` in Development.
 | `Media:Limits:*` | `ImageMaxBytes` 8 MB, `ImageMaxDimension` 4096, `MaxPendingUploadsPerUser` 5, URL lifetimes (upload 300 s, download 900 s), `UnattachedRetentionHours` 24 |
 | `Media:RateLimit:PermitLimit` / `WindowSeconds` | Per-user limit for starting uploads; defaults 20 / 60 |
 | `Media:Janitor:Enabled` / `IntervalSeconds` | Cleanup of abandoned, unused, rejected and released uploads; defaults on / 300 |
+| `VoiceSessions:ScreenSharing:Enabled` | Runtime flag for screen sharing (ADR-0017, in development). Default `false`: join grants publish only the microphone and `POST /channels/{id}/voice/watch` answers `403 voice.screen_share_disabled`. Enable only with a desktop build that implements sharing; the flag is removed once the feature ships |
 
 ## Architecture rules
 

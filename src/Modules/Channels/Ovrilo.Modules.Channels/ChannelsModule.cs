@@ -84,6 +84,14 @@ internal sealed class ChannelsModuleApi(ChannelsDbContext db, ICommunitiesModule
     public Task<bool> CanJoinVoiceAsync(Guid channelId, Guid userId, CancellationToken cancellationToken = default) =>
         HasAsync(channelId, userId, ChannelType.Voice, CommunityPermissions.ViewChannels | CommunityPermissions.ConnectVoice, cancellationToken);
 
+    public Task<bool> CanShareScreenAsync(Guid channelId, Guid userId, CancellationToken cancellationToken = default) =>
+        HasAsync(
+            channelId,
+            userId,
+            ChannelType.Voice,
+            CommunityPermissions.ViewChannels | CommunityPermissions.ConnectVoice | CommunityPermissions.ShareScreen,
+            cancellationToken);
+
     public async Task<IReadOnlyList<Guid>?> ListReadableTextChannelIdsAsync(Guid communityId, Guid userId, CancellationToken cancellationToken = default)
     {
         // Permissions are community-wide today; per-channel overrides would filter here.

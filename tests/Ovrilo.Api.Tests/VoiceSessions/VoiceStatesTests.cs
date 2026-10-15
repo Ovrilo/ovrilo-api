@@ -36,7 +36,12 @@ public sealed class VoiceStatesTests(OvriloApiFactory factory)
         var lobby = await owner.CreateChannelAsync(community.Id, "Lobby", "voice");
         var empty = await owner.CreateChannelAsync(community.Id, "Empty", "voice");
 
-        _rooms.Set(lobby.Id, new RoomParticipant(owner.Id.ToString(), MicrophoneMuted: true), new RoomParticipant("not-a-user-id", false));
+        _rooms.Set(
+            lobby.Id,
+            new RoomParticipant(owner.Id.ToString(), MicrophoneMuted: true, ScreenSharing: true),
+            new RoomParticipant("not-a-user-id", false),
+            // The same user's watch-only connection (ADR-0017) is not a second occupant.
+            new RoomParticipant($"{owner.Id}#viewer", false));
 
         var states = await GetStatesAsync(friend, community.Id);
 
@@ -46,6 +51,7 @@ public sealed class VoiceStatesTests(OvriloApiFactory factory)
         Assert.Equal(owner.Id, participant.UserId);
         Assert.Equal(owner.Auth.User.DisplayName, participant.DisplayName);
         Assert.True(participant.Muted);
+        Assert.True(participant.ScreenSharing);
         // Only the community's voice channels are looked up, never text channels (the default text channel exists).
         Assert.Equal(
             new[] { $"channel_{general.Id:N}", $"channel_{lobby.Id:N}", $"channel_{empty.Id:N}" }.Order(StringComparer.Ordinal),

@@ -16,6 +16,9 @@ public enum CommunityPermissions : long
     ManageCommunity = 1L << 6,
     ManageMembers = 1L << 7,
     ManageMessages = 1L << 8,
+
+    /// <summary>Share a screen or window (with its application's sound) in voice channels (ADR-0017).</summary>
+    ShareScreen = 1L << 9,
 }
 
 /// <summary>System roles for Phase 01. Custom roles are future, additive work.</summary>
