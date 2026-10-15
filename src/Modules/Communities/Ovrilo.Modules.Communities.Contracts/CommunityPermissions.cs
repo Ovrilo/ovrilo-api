@@ -39,4 +39,7 @@ public interface ICommunitiesModule
 
     /// <summary>Active members of a community. No permission check: callers authorize first.</summary>
     Task<IReadOnlyList<Guid>> ListMemberIdsAsync(Guid communityId, CancellationToken cancellationToken = default);
+
+    /// <summary>When the user (last) joined the community; null when the community does not exist or they are not an active member.</summary>
+    Task<DateTimeOffset?> GetJoinedAtAsync(Guid communityId, Guid userId, CancellationToken cancellationToken = default);
 }

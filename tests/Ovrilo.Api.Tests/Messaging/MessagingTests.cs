@@ -26,7 +26,7 @@ public sealed class MessagingTests(OvriloApiFactory factory)
         var member = await TestUser.RegisterAsync(factory);
         var community = await owner.CreateCommunityAsync();
         await member.AcceptAsync((await owner.CreateInvitationAsync(community.Id)).Code);
-        var general = await owner.CreateChannelAsync(community.Id, "general", "text");
+        var general = await owner.DefaultChannelAsync(community.Id, "text");
         return new Room(owner, member, community.Id, general);
     }
 

@@ -70,7 +70,7 @@ public static class MessagingModule
             .RequireAuthorization()
             .WithTags("Messages")
             .WithName("ListCommunityUnread")
-            .WithSummary("Read position, newest message and unread count (capped at 100) of each readable text channel.")
+            .WithSummary("Read position, newest message and unread count (capped at 100) of each readable text channel. History from before the caller joined counts as read.")
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         var messages = endpoints.MapGroup("/messages/{messageId:long}").WithTags("Messages").RequireAuthorization();

@@ -21,7 +21,7 @@ public sealed class ReadStateTests(OvriloApiFactory factory)
         using var member = await TestUser.RegisterAsync(factory);
         var community = await owner.CreateCommunityAsync();
         await member.AcceptAsync((await owner.CreateInvitationAsync(community.Id)).Code);
-        var general = await owner.CreateChannelAsync(community.Id, "general", "text");
+        var general = await owner.DefaultChannelAsync(community.Id, "text");
         var quiet = await owner.CreateChannelAsync(community.Id, "quiet", "text");
 
         var first = await SendAsync(owner, general.Id, "one");
@@ -48,12 +48,35 @@ public sealed class ReadStateTests(OvriloApiFactory factory)
     }
 
     [Fact]
+    public async Task HistoryFromBeforeJoiningIsNotUnread()
+    {
+        using var owner = await TestUser.RegisterAsync(factory);
+        using var newcomer = await TestUser.RegisterAsync(factory);
+        var community = await owner.CreateCommunityAsync();
+        var general = await owner.DefaultChannelAsync(community.Id, "text");
+        await SendAsync(owner, general.Id, "before you came");
+        var history = await SendAsync(owner, general.Id, "still before");
+
+        await newcomer.AcceptAsync((await owner.CreateInvitationAsync(community.Id)).Code);
+        var clips = await owner.CreateChannelAsync(community.Id, "clips", "text");
+        var clip = await SendAsync(owner, clips.Id, "made after you joined");
+
+        // The "New" line goes after the old history; a channel that only has newer messages is all unread.
+        var unread = await UnreadAsync(newcomer, community.Id);
+        Assert.Equal(new ChannelUnreadResponse(general.Id, history.Id, history.Id, 0), unread[0]);
+        Assert.Equal(new ChannelUnreadResponse(clips.Id, null, clip.Id, 1), unread[1]);
+
+        var welcome = await SendAsync(owner, general.Id, "welcome!");
+        Assert.Equal(new ChannelUnreadResponse(general.Id, history.Id, welcome.Id, 1), (await UnreadAsync(newcomer, community.Id))[0]);
+    }
+
+    [Fact]
     public async Task MarkersMustBelongToTheChannelAndOutsidersSeeNothing()
     {
         using var owner = await TestUser.RegisterAsync(factory);
         using var stranger = await TestUser.RegisterAsync(factory);
         var community = await owner.CreateCommunityAsync();
-        var general = await owner.CreateChannelAsync(community.Id, "general", "text");
+        var general = await owner.DefaultChannelAsync(community.Id, "text");
         var other = await owner.CreateChannelAsync(community.Id, "other", "text");
         var elsewhere = await SendAsync(owner, other.Id, "elsewhere");
 
@@ -72,7 +95,7 @@ public sealed class ReadStateTests(OvriloApiFactory factory)
         using var member = await TestUser.RegisterAsync(factory);
         var community = await owner.CreateCommunityAsync();
         await member.AcceptAsync((await owner.CreateInvitationAsync(community.Id)).Code);
-        var general = await owner.CreateChannelAsync(community.Id, "general", "text");
+        var general = await owner.DefaultChannelAsync(community.Id, "text");
         var message = await SendAsync(owner, general.Id, "read me");
 
         await using var otherDevice = await ConnectAsync(member);

@@ -29,6 +29,7 @@ HTTP is described by `openapi/ovrilo-api.json`; realtime events are described he
 | `PresenceChanged` | `{ userId: uuid, online: boolean }` | A member of a subscribed community came online (first open connection) or went offline (last connection closed, after a grace period of `Realtime:PresenceGraceSeconds`, default 10, so reconnects do not flicker). |
 | `UserUpdated` | `{ userId: uuid, displayName: string, avatarAssetId: uuid \| null }` | A member of a subscribed community (or the caller, on their other devices) changed their avatar. Refetch the avatar by its new asset ID; `null` means initials. |
 | `CommunityUpdated` | `{ communityId: uuid, name: string, description: string \| null, iconAssetId: uuid \| null }` | A subscribed community's icon changed. |
+| `ChannelsChanged` | `{ communityId: uuid, channelId: uuid, change: "created" \| "updated" \| "deleted" }` | A channel of a subscribed community was created, renamed, re-topiced, moved or deleted. Refetch `GET /communities/{communityId}/channels`: a move renumbers the other channels of its type, so do not patch the list from the payload. Clients showing a deleted channel move away from it, and clients connected to a deleted voice channel leave it (the server does not eject them yet). |
 
 `MessageResponse` is the OpenAPI schema of the same name.
 

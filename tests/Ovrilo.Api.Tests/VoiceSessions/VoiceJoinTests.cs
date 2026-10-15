@@ -76,7 +76,7 @@ public sealed class VoiceJoinTests(OvriloApiFactory factory)
     {
         using var owner = await TestUser.RegisterAsync(factory);
         var community = await owner.CreateCommunityAsync();
-        var general = await owner.CreateChannelAsync(community.Id, "general", "text");
+        var general = await owner.DefaultChannelAsync(community.Id, "text");
 
         var response = await owner.PostAsync($"/channels/{general.Id}/voice/join", new { });
 

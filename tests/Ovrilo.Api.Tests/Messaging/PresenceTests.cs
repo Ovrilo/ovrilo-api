@@ -80,7 +80,7 @@ public sealed class PresenceTests(OvriloApiFactory factory)
         using var limited = factory.WithWebHostBuilder(b => b.UseSetting("Messaging:RateLimit:PermitLimit", "2"));
         using var owner = await TestUser.RegisterAsync(limited);
         var community = await owner.CreateCommunityAsync();
-        var general = await owner.CreateChannelAsync(community.Id, "general", "text");
+        var general = await owner.DefaultChannelAsync(community.Id, "text");
 
         HttpResponseMessage? last = null;
         for (var i = 0; i < 3; i++)

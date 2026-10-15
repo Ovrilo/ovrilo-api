@@ -29,4 +29,11 @@ public interface IChannelsModule
 
     /// <summary>Non-deleted voice channels of a community, in display order. No permission check: callers authorize first.</summary>
     Task<IReadOnlyList<Guid>> ListVoiceChannelIdsAsync(Guid communityId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gives a newly created community its starter channels (text <c>general</c>, voice <c>General</c>) so it is
+    /// usable right away. Does nothing when the community already has channels. No permission check: called by the
+    /// Communities module right after it created the community.
+    /// </summary>
+    Task CreateDefaultChannelsAsync(Guid communityId, Guid createdBy, CancellationToken cancellationToken = default);
 }

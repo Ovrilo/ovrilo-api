@@ -8,6 +8,7 @@ using Ovrilo.BuildingBlocks;
 using Ovrilo.BuildingBlocks.Persistence;
 using Ovrilo.BuildingBlocks.Realtime;
 using Ovrilo.Modules.Channels.Contracts;
+using Ovrilo.Modules.Communities.Contracts;
 using Ovrilo.Modules.Identity.Contracts;
 using Ovrilo.Modules.Messaging.Persistence;
 
@@ -19,8 +20,10 @@ public sealed record MarkReadRequest(long LastReadMessageId);
 public sealed record ReadStateResponse(Guid ChannelId, long LastReadMessageId);
 
 /// <summary>
-/// Unread summary of one text channel for the caller. <c>UnreadCount</c> counts other people's
-/// messages after <c>LastReadMessageId</c> (null: never read) and stops at <see cref="ReadStateEndpoints.UnreadCountCap"/>.
+/// Unread summary of one text channel for the caller. <c>UnreadCount</c> counts other people's messages after
+/// <c>LastReadMessageId</c> and stops at <see cref="ReadStateEndpoints.UnreadCountCap"/>. For a channel the caller never
+/// read, <c>LastReadMessageId</c> is the newest message from before they joined the community (history is not news), or
+/// null when everything is newer.
 /// </summary>
 public sealed record ChannelUnreadResponse(Guid ChannelId, long? LastReadMessageId, long? LastMessageId, int UnreadCount);
 
@@ -34,6 +37,9 @@ internal static class ReadStateEndpoints
 {
     /// <summary>Counting stops here; clients show "99+"-style labels from it.</summary>
     public const int UnreadCountCap = 100;
+
+    /// <summary>How many of a never-read channel's newest messages are searched for the last one from before joining.</summary>
+    private const int JoinBoundaryScan = 2 * UnreadCountCap;
 
     public static async Task<Results<Ok<ReadStateResponse>, ValidationProblem, ProblemHttpResult>> MarkReadAsync(
         Guid channelId,
@@ -74,11 +80,13 @@ internal static class ReadStateEndpoints
         ClaimsPrincipal principal,
         MessagingDbContext db,
         IChannelsModule channels,
+        ICommunitiesModule communities,
         CancellationToken cancellationToken)
     {
         var userId = principal.GetRequiredUserId();
         var channelIds = await channels.ListReadableTextChannelIdsAsync(communityId, userId, cancellationToken);
-        if (channelIds is null)
+        var joinedAt = await communities.GetJoinedAtAsync(communityId, userId, cancellationToken);
+        if (channelIds is null || joinedAt is null)
         {
             return ApiProblems.Create(StatusCodes.Status404NotFound, "communities.not_found", "Community not found.");
         }
@@ -97,6 +105,10 @@ internal static class ReadStateEndpoints
         {
             long? read = readPositions.TryGetValue(channelId, out var r) ? r : null;
             long? last = latest.TryGetValue(channelId, out var l) ? l : null;
+            if (read is null && last is not null)
+            {
+                read = await LastMessageBeforeAsync(db, channelId, joinedAt.Value, cancellationToken);
+            }
             var count = 0;
             if (last is { } newest && newest > (read ?? 0))
             {
@@ -112,6 +124,21 @@ internal static class ReadStateEndpoints
         }
 
         return TypedResults.Ok(result);
+    }
+
+    /// <summary>
+    /// The newest message posted before <paramref name="joinedAt"/>, among the channel's newest <see cref="JoinBoundaryScan"/>
+    /// (one bounded index scan). Not found means at least that many arrived after joining: the count is capped anyway.
+    /// </summary>
+    private static async Task<long?> LastMessageBeforeAsync(MessagingDbContext db, Guid channelId, DateTimeOffset joinedAt, CancellationToken cancellationToken)
+    {
+        var newest = await db.Messages.AsNoTracking()
+            .Where(m => m.ChannelId == channelId)
+            .OrderByDescending(m => m.Id)
+            .Take(JoinBoundaryScan)
+            .Select(m => new { m.Id, m.CreatedAt })
+            .ToListAsync(cancellationToken);
+        return newest.FirstOrDefault(m => m.CreatedAt <= joinedAt)?.Id;
     }
 
     /// <summary>

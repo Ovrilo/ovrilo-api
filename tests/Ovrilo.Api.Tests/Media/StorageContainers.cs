@@ -59,26 +59,27 @@ public sealed class StorageContainer : IAsyncDisposable
     public async Task StartAsync()
     {
         await _container.StartAsync();
-        if (_createsBucket)
+        using var client = CreateClient();
+        // RustFS answers /health before its S3 API is ready (503 for a few seconds, as in ovrilo-infra's storage-init);
+        // SeaweedFS creates the bucket during startup. Either way, retry until a signed request succeeds.
+        for (var attempt = 0; ; attempt++)
         {
-            using var client = CreateClient();
-            await client.PutBucketAsync(Bucket);
-        }
-        else
-        {
-            // SeaweedFS creates the bucket during startup; wait until a signed request sees it.
-            using var client = CreateClient();
-            for (var attempt = 0; ; attempt++)
+            try
             {
-                try
+                if (_createsBucket)
+                {
+                    await client.PutBucketAsync(Bucket);
+                }
+                else
                 {
                     await client.GetBucketLocationAsync(Bucket);
-                    break;
                 }
-                catch (AmazonS3Exception) when (attempt < 60)
-                {
-                    await Task.Delay(500);
-                }
+
+                break;
+            }
+            catch (AmazonS3Exception ex) when (attempt < 60 && (!_createsBucket || ex.StatusCode == HttpStatusCode.ServiceUnavailable))
+            {
+                await Task.Delay(500);
             }
         }
     }

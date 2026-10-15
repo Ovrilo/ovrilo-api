@@ -51,7 +51,7 @@ public static class CommunitiesModule
 
         communities.MapPost("/", CommunityEndpoints.CreateAsync)
             .WithName("CreateCommunity")
-            .WithSummary("Creates a private community owned by the caller.");
+            .WithSummary("Creates a private community owned by the caller, with a text channel `general` and a voice channel `General`.");
 
         communities.MapGet("/", CommunityEndpoints.ListMineAsync)
             .WithName("ListMyCommunities")
@@ -137,4 +137,10 @@ internal sealed class CommunitiesModuleApi(CommunitiesDbContext db) : ICommuniti
             .Where(m => m.CommunityId == communityId && m.State == MembershipState.Active)
             .Select(m => m.UserId)
             .ToListAsync(cancellationToken);
+
+    public async Task<DateTimeOffset?> GetJoinedAtAsync(Guid communityId, Guid userId, CancellationToken cancellationToken = default) =>
+        await db.Members.AsNoTracking()
+            .Where(m => m.CommunityId == communityId && m.UserId == userId && m.State == MembershipState.Active)
+            .Join(db.Communities.Where(c => c.DeletedAt == null), m => m.CommunityId, c => c.Id, (m, _) => (DateTimeOffset?)m.JoinedAt)
+            .SingleOrDefaultAsync(cancellationToken);
 }

@@ -32,9 +32,9 @@ public sealed class VoiceStatesTests(OvriloApiFactory factory)
         using var friend = await TestUser.RegisterAsync(app);
         var community = await owner.CreateCommunityAsync();
         await friend.AcceptAsync((await owner.CreateInvitationAsync(community.Id)).Code);
+        var general = await owner.DefaultChannelAsync(community.Id, "voice");
         var lobby = await owner.CreateChannelAsync(community.Id, "Lobby", "voice");
         var empty = await owner.CreateChannelAsync(community.Id, "Empty", "voice");
-        await owner.CreateChannelAsync(community.Id, "general", "text");
 
         _rooms.Set(lobby.Id, new RoomParticipant(owner.Id.ToString(), MicrophoneMuted: true), new RoomParticipant("not-a-user-id", false));
 
@@ -46,9 +46,9 @@ public sealed class VoiceStatesTests(OvriloApiFactory factory)
         Assert.Equal(owner.Id, participant.UserId);
         Assert.Equal(owner.Auth.User.DisplayName, participant.DisplayName);
         Assert.True(participant.Muted);
-        // Only the community's voice channels are looked up, never text channels.
+        // Only the community's voice channels are looked up, never text channels (the default text channel exists).
         Assert.Equal(
-            new[] { $"channel_{lobby.Id:N}", $"channel_{empty.Id:N}" }.Order(StringComparer.Ordinal),
+            new[] { $"channel_{general.Id:N}", $"channel_{lobby.Id:N}", $"channel_{empty.Id:N}" }.Order(StringComparer.Ordinal),
             _rooms.Queried.Order(StringComparer.Ordinal));
     }
 
@@ -74,7 +74,7 @@ public sealed class VoiceStatesTests(OvriloApiFactory factory)
         var app = App;
         using var owner = await TestUser.RegisterAsync(app);
         var community = await owner.CreateCommunityAsync();
-        await owner.CreateChannelAsync(community.Id, "general", "text");
+        await owner.DeleteChannelAsync((await owner.DefaultChannelAsync(community.Id, "voice")).Id);
 
         Assert.Empty(await GetStatesAsync(owner, community.Id));
         Assert.Empty(_rooms.Queried);
