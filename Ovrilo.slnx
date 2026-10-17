@@ -22,6 +22,10 @@
     <Project Path="src/Modules/Media/Ovrilo.Modules.Media.Contracts/Ovrilo.Modules.Media.Contracts.csproj" />
     <Project Path="src/Modules/Media/Ovrilo.Modules.Media/Ovrilo.Modules.Media.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Social/">
+    <Project Path="src/Modules/Social/Ovrilo.Modules.Social.Contracts/Ovrilo.Modules.Social.Contracts.csproj" />
+    <Project Path="src/Modules/Social/Ovrilo.Modules.Social/Ovrilo.Modules.Social.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Messaging/">
     <Project Path="src/Modules/Messaging/Ovrilo.Modules.Messaging/Ovrilo.Modules.Messaging.csproj" />
   </Folder>

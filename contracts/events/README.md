@@ -16,6 +16,7 @@ HTTP is described by `openapi/ovrilo-api.json`; realtime events are described he
 | `UnsubscribeChannel` | `channelId: uuid` | — | Idempotent. |
 | `SubscribeCommunity` | `communityId: uuid` | `{ onlineUserIds: uuid[] } \| null` | Presence of the community's members: who is online now, then `PresenceChanged` events. `null` when the caller is not an active member; nothing is subscribed. |
 | `UnsubscribeCommunity` | `communityId: uuid` | — | Idempotent. |
+| `GetFriendsPresence` | — | `{ onlineUserIds: uuid[] }` | Friends online now. Friends' later changes arrive as `PresenceChanged` without subscribing; call again after reconnecting and after `FriendsChanged`. |
 
 ## Server → client
 
@@ -26,7 +27,8 @@ HTTP is described by `openapi/ovrilo-api.json`; realtime events are described he
 | `MessageDeleted` | `MessageResponse` (tombstone: `content: null`, `deletedAt` set) | The message was deleted. |
 
 | `ReadStateUpdated` | `ReadStateResponse` (`{ channelId, lastReadMessageId }`) | Sent to the reader's own connections when `PUT /channels/{channelId}/read-state` moved their position forward, so other devices clear the unread badge. No channel subscription needed. |
-| `PresenceChanged` | `{ userId: uuid, online: boolean }` | A member of a subscribed community came online (first open connection) or went offline (last connection closed, after a grace period of `Realtime:PresenceGraceSeconds`, default 10, so reconnects do not flicker). |
+| `FriendsChanged` | `{ change: "requestReceived" \| "friendAdded" \| "updated", user: SocialUserResponse }` | Sent to the user's own connections when their friends, requests or blocks changed; `user` is the other person. Clients refetch `GET /friends` and `GET /friends/requests` (and `/blocks`). No subscription needed. |
+| `PresenceChanged` | `{ userId: uuid, online: boolean }` | A member of a subscribed community, or a friend, came online (first open connection) or went offline (last connection closed, after a grace period of `Realtime:PresenceGraceSeconds`, default 10, so reconnects do not flicker). |
 | `UserUpdated` | `{ userId: uuid, displayName: string, avatarAssetId: uuid \| null }` | A member of a subscribed community (or the caller, on their other devices) changed their avatar. Refetch the avatar by its new asset ID; `null` means initials. |
 | `CommunityUpdated` | `{ communityId: uuid, name: string, description: string \| null, iconAssetId: uuid \| null }` | A subscribed community's name, description or icon changed. |
 | `CommunityDeleted` | `{ communityId: uuid }` | The owner deleted a subscribed community. Remove it from the list, leave its voice channel if connected; its REST endpoints now answer `404`. |

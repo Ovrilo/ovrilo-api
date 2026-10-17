@@ -16,6 +16,7 @@ using Ovrilo.Modules.Communities;
 using Ovrilo.Modules.Identity;
 using Ovrilo.Modules.Media;
 using Ovrilo.Modules.Messaging;
+using Ovrilo.Modules.Social;
 using Ovrilo.Modules.VoiceSessions;
 
 // `migrate` applies pending schema migrations and exits: an explicit, authorized operation for
@@ -86,6 +87,7 @@ builder.Services.AddCommunitiesModule();
 builder.Services.AddChannelsModule();
 builder.Services.AddVoiceSessionsModule();
 builder.Services.AddMessagingModule();
+builder.Services.AddSocialModule();
 builder.Services.AddMediaModule();
 
 // Tell rejected clients when to retry (whole seconds, rounded up) so they can show a cooldown.
@@ -156,6 +158,7 @@ app.MapCommunitiesEndpoints();
 app.MapChannelsEndpoints();
 app.MapVoiceSessionsEndpoints();
 app.MapMessagingEndpoints();
+app.MapSocialEndpoints();
 app.MapMediaEndpoints();
 // Close connections when the access token expires, so revoked sessions stop receiving events;
 // clients reconnect with a fresh token and catch up over REST.
@@ -168,6 +171,7 @@ if (migrateOnly || app.Configuration.GetValue<bool>("Database:ApplyMigrationsOnS
     await app.Services.MigrateCommunitiesDatabaseAsync();
     await app.Services.MigrateChannelsDatabaseAsync();
     await app.Services.MigrateMessagingDatabaseAsync();
+    await app.Services.MigrateSocialDatabaseAsync();
     await app.Services.MigrateMediaDatabaseAsync();
 }
 

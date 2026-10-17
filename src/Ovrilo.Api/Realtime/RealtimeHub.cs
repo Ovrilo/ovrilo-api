@@ -5,6 +5,7 @@ using Ovrilo.BuildingBlocks.Realtime;
 using Ovrilo.Modules.Channels.Contracts;
 using Ovrilo.Modules.Communities.Contracts;
 using Ovrilo.Modules.Identity.Contracts;
+using Ovrilo.Modules.Social.Contracts;
 
 namespace Ovrilo.Api.Realtime;
 
@@ -15,7 +16,11 @@ namespace Ovrilo.Api.Realtime;
 /// could not read over REST.
 /// </summary>
 [Authorize]
-public sealed class RealtimeHub(IChannelsModule channels, ICommunitiesModule communities, PresenceTracker presence) : Hub
+public sealed class RealtimeHub(
+    IChannelsModule channels,
+    ICommunitiesModule communities,
+    ISocialModule social,
+    PresenceTracker presence) : Hub
 {
     public const string Path = "/hubs/realtime";
 
@@ -45,6 +50,16 @@ public sealed class RealtimeHub(IChannelsModule channels, ICommunitiesModule com
         return new CommunityPresenceResponse([.. members.Where(presence.IsOnline)]);
     }
 
+    /// <summary>
+    /// Friends online now. Their later changes arrive as PresenceChanged without subscribing; call
+    /// again after reconnecting and after FriendsChanged (new friends).
+    /// </summary>
+    public async Task<FriendsPresenceResponse> GetFriendsPresence()
+    {
+        var friends = await social.ListFriendIdsAsync(Context.User!.GetRequiredUserId(), Context.ConnectionAborted);
+        return new FriendsPresenceResponse([.. friends.Where(presence.IsOnline)]);
+    }
+
     public Task UnsubscribeCommunity(Guid communityId) =>
         Groups.RemoveFromGroupAsync(Context.ConnectionId, RealtimeGroups.Community(communityId), Context.ConnectionAborted);
 
@@ -72,6 +87,8 @@ internal sealed class RealtimeUserIdProvider : IUserIdProvider
 }
 
 public sealed record CommunityPresenceResponse(IReadOnlyList<Guid> OnlineUserIds);
+
+public sealed record FriendsPresenceResponse(IReadOnlyList<Guid> OnlineUserIds);
 
 internal sealed class SignalRRealtimePublisher(IHubContext<RealtimeHub> hub, ILogger<SignalRRealtimePublisher> logger) : IRealtimePublisher
 {

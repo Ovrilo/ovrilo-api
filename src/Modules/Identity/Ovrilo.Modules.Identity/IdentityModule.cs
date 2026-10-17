@@ -164,6 +164,17 @@ internal sealed class IdentityModuleApi(IdentityDbContext db) : IIdentityModule
             .ToDictionaryAsync(u => u.Id, cancellationToken);
     }
 
+    public Task<PublicUser?> FindByUsernameAsync(string username, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(username);
+        // Usernames are stored normalized (lowercase).
+        var normalized = username.Trim().ToLowerInvariant();
+        return db.Users.AsNoTracking()
+            .Where(u => u.Username == normalized && u.Status == UserStatus.Active)
+            .Select(u => new PublicUser(u.Id, u.Username, u.DisplayName, u.AvatarAssetId))
+            .SingleOrDefaultAsync(cancellationToken);
+    }
+
     public Task<bool> IsAccountActiveAsync(Guid userId, CancellationToken cancellationToken = default) =>
         db.Users.AnyAsync(u => u.Id == userId && u.Status == UserStatus.Active, cancellationToken);
 }

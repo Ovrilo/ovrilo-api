@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Ovrilo API",
-    "version": "0.10.0"
+    "version": "0.11.0"
   },
   "paths": {
     "/version": {
@@ -2050,6 +2050,469 @@
         ]
       }
     },
+    "/friends": {
+      "get": {
+        "tags": [
+          "Friends"
+        ],
+        "summary": "Your friends, sorted by display name.",
+        "operationId": "ListFriends",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FriendResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/friends/{userId}": {
+      "delete": {
+        "tags": [
+          "Friends"
+        ],
+        "summary": "Ends a friendship. Idempotent.",
+        "operationId": "RemoveFriend",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/friends/requests": {
+      "get": {
+        "tags": [
+          "Friends"
+        ],
+        "summary": "Pending friend requests you received and sent, newest first.",
+        "operationId": "ListFriendRequests",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FriendRequestListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Friends"
+        ],
+        "summary": "Sends a friend request by username. If they already asked you, you become friends (200, outcome friends).",
+        "operationId": "SendFriendRequest",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendFriendRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendFriendRequestResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendFriendRequestResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/friends/requests/{requestId}/accept": {
+      "post": {
+        "tags": [
+          "Friends"
+        ],
+        "summary": "Accepts a request you received.",
+        "operationId": "AcceptFriendRequest",
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FriendResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/friends/requests/{requestId}/decline": {
+      "post": {
+        "tags": [
+          "Friends"
+        ],
+        "summary": "Declines a request you received. Idempotent.",
+        "operationId": "DeclineFriendRequest",
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/friends/requests/{requestId}": {
+      "delete": {
+        "tags": [
+          "Friends"
+        ],
+        "summary": "Takes back a request you sent. Idempotent.",
+        "operationId": "CancelFriendRequest",
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/blocks": {
+      "get": {
+        "tags": [
+          "Friends"
+        ],
+        "summary": "People you blocked, newest first.",
+        "operationId": "ListBlocks",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BlockedUserResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/blocks/{userId}": {
+      "put": {
+        "tags": [
+          "Friends"
+        ],
+        "summary": "Blocks someone: ends the friendship and cancels pending requests both ways. They cannot send you requests. Idempotent.",
+        "operationId": "BlockUser",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Friends"
+        ],
+        "summary": "Removes a block. Idempotent; the friendship is not restored.",
+        "operationId": "UnblockUser",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/media/uploads": {
       "post": {
         "tags": [
@@ -2318,6 +2781,22 @@
           },
           "user": {
             "$ref": "#/components/schemas/CurrentUserResponse"
+          }
+        }
+      },
+      "BlockedUserResponse": {
+        "required": [
+          "user",
+          "since"
+        ],
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/SocialUserResponse"
+          },
+          "since": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -2655,6 +3134,70 @@
         "properties": {
           "content": {
             "type": "string"
+          }
+        }
+      },
+      "FriendRequestListResponse": {
+        "required": [
+          "incoming",
+          "outgoing"
+        ],
+        "type": "object",
+        "properties": {
+          "incoming": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FriendRequestResponse"
+            }
+          },
+          "outgoing": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FriendRequestResponse"
+            }
+          }
+        }
+      },
+      "FriendRequestOutcome": {
+        "enum": [
+          "requested",
+          "friends"
+        ]
+      },
+      "FriendRequestResponse": {
+        "required": [
+          "id",
+          "user",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "user": {
+            "$ref": "#/components/schemas/SocialUserResponse"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "FriendResponse": {
+        "required": [
+          "user",
+          "since"
+        ],
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/SocialUserResponse"
+          },
+          "since": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -3054,6 +3597,50 @@
           }
         }
       },
+      "SendFriendRequestRequest": {
+        "required": [
+          "username"
+        ],
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          }
+        }
+      },
+      "SendFriendRequestResponse": {
+        "required": [
+          "outcome",
+          "request",
+          "friend"
+        ],
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "$ref": "#/components/schemas/FriendRequestOutcome"
+          },
+          "request": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FriendRequestResponse"
+              }
+            ]
+          },
+          "friend": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FriendResponse"
+              }
+            ]
+          }
+        }
+      },
       "SendMessageRequest": {
         "required": [
           "clientMessageId",
@@ -3098,6 +3685,34 @@
         "properties": {
           "assetId": {
             "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "SocialUserResponse": {
+        "required": [
+          "id",
+          "username",
+          "displayName",
+          "avatarAssetId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "username": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "avatarAssetId": {
+            "type": [
+              "null",
+              "string"
+            ],
             "format": "uuid"
           }
         }
@@ -3324,6 +3939,9 @@
     },
     {
       "name": "Auth"
+    },
+    {
+      "name": "Friends"
     },
     {
       "name": "Media"

@@ -18,6 +18,8 @@ COPY src/Modules/Channels/Ovrilo.Modules.Channels.Contracts/Ovrilo.Modules.Chann
 COPY src/Modules/Channels/Ovrilo.Modules.Channels/Ovrilo.Modules.Channels.csproj src/Modules/Channels/Ovrilo.Modules.Channels/
 COPY src/Modules/VoiceSessions/Ovrilo.Modules.VoiceSessions/Ovrilo.Modules.VoiceSessions.csproj src/Modules/VoiceSessions/Ovrilo.Modules.VoiceSessions/
 COPY src/Modules/Messaging/Ovrilo.Modules.Messaging/Ovrilo.Modules.Messaging.csproj src/Modules/Messaging/Ovrilo.Modules.Messaging/
+COPY src/Modules/Social/Ovrilo.Modules.Social.Contracts/Ovrilo.Modules.Social.Contracts.csproj src/Modules/Social/Ovrilo.Modules.Social.Contracts/
+COPY src/Modules/Social/Ovrilo.Modules.Social/Ovrilo.Modules.Social.csproj src/Modules/Social/Ovrilo.Modules.Social/
 COPY src/Modules/Media/Ovrilo.Modules.Media.Contracts/Ovrilo.Modules.Media.Contracts.csproj src/Modules/Media/Ovrilo.Modules.Media.Contracts/
 COPY src/Modules/Media/Ovrilo.Modules.Media/Ovrilo.Modules.Media.csproj src/Modules/Media/Ovrilo.Modules.Media/
 COPY src/Ovrilo.Api/Ovrilo.Api.csproj src/Ovrilo.Api/

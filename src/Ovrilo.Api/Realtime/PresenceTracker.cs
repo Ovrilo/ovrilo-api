@@ -2,10 +2,11 @@ using Microsoft.AspNetCore.SignalR;
 
 using Ovrilo.BuildingBlocks.Realtime;
 using Ovrilo.Modules.Communities.Contracts;
+using Ovrilo.Modules.Social.Contracts;
 
 namespace Ovrilo.Api.Realtime;
 
-/// <summary>Sent to the user's communities when they come online or go offline.</summary>
+/// <summary>Sent to the user's communities and friends when they come online or go offline.</summary>
 public sealed record PresenceChangedEvent(Guid UserId, bool Online);
 
 /// <summary>
@@ -99,11 +100,19 @@ public sealed class PresenceTracker(
         try
         {
             await using var scope = scopes.CreateAsyncScope();
+            var change = new PresenceChangedEvent(userId, online);
             var communities = await scope.ServiceProvider.GetRequiredService<ICommunitiesModule>().ListCommunityIdsAsync(userId);
             if (communities.Count > 0)
             {
                 await hub.Clients.Groups([.. communities.Select(RealtimeGroups.Community)])
-                    .SendAsync(PresenceChanged, new PresenceChangedEvent(userId, online));
+                    .SendAsync(PresenceChanged, change);
+            }
+
+            // Friends see it too, also without a shared community (a friend in one may get it twice).
+            var friends = await scope.ServiceProvider.GetRequiredService<ISocialModule>().ListFriendIdsAsync(userId);
+            if (friends.Count > 0)
+            {
+                await hub.Clients.Users([.. friends.Select(id => id.ToString())]).SendAsync(PresenceChanged, change);
             }
         }
         catch (Exception ex)
