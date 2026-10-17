@@ -74,19 +74,18 @@ internal static class MessageEndpoints
         SendMessageRequest request,
         ClaimsPrincipal principal,
         MessagingDbContext db,
-        IChannelsModule channels,
+        ConversationAccess access,
         IIdentityModule identity,
-        IRealtimePublisher realtime,
         TimeProvider timeProvider,
         CancellationToken cancellationToken)
     {
         var userId = principal.GetRequiredUserId();
-        if (!await channels.CanReadChannelAsync(channelId, userId, cancellationToken))
+        if (!await access.CanReadAsync(channelId, userId, cancellationToken))
         {
             return MessageProblems.ChannelNotFound();
         }
 
-        if (!await channels.CanWriteMessagesAsync(channelId, userId, cancellationToken))
+        if (!await access.CanWriteAsync(channelId, userId, cancellationToken))
         {
             return MessageProblems.PermissionDenied();
         }
@@ -146,7 +145,7 @@ internal static class MessageEndpoints
         await ReadStateEndpoints.AdvanceAsync(db, userId, channelId, message.Id, timeProvider, cancellationToken);
 
         var created = await ToResponseAsync(message, identity, cancellationToken);
-        await realtime.PublishToChannelAsync(channelId, MessagingEvents.MessageCreated, created, cancellationToken);
+        await access.PublishAsync(channelId, MessagingEvents.MessageCreated, created, cancellationToken);
         return TypedResults.Created($"/messages/{message.Id}", created);
     }
 
@@ -161,11 +160,11 @@ internal static class MessageEndpoints
         int? limit,
         ClaimsPrincipal principal,
         MessagingDbContext db,
-        IChannelsModule channels,
+        ConversationAccess access,
         IIdentityModule identity,
         CancellationToken cancellationToken)
     {
-        if (!await channels.CanReadChannelAsync(channelId, principal.GetRequiredUserId(), cancellationToken))
+        if (!await access.CanReadAsync(channelId, principal.GetRequiredUserId(), cancellationToken))
         {
             return MessageProblems.ChannelNotFound();
         }
@@ -211,22 +210,21 @@ internal static class MessageEndpoints
         EditMessageRequest request,
         ClaimsPrincipal principal,
         MessagingDbContext db,
-        IChannelsModule channels,
+        ConversationAccess access,
         IIdentityModule identity,
-        IRealtimePublisher realtime,
         TimeProvider timeProvider,
         CancellationToken cancellationToken)
     {
         var userId = principal.GetRequiredUserId();
         var message = await db.Messages.SingleOrDefaultAsync(m => m.Id == messageId, cancellationToken);
         if (message is null || message.DeletedAt is not null
-            || !await channels.CanReadChannelAsync(message.ChannelId, userId, cancellationToken))
+            || !await access.CanReadAsync(message.ChannelId, userId, cancellationToken))
         {
             return MessageProblems.NotFound();
         }
 
         // Only the author edits, and only while they may still post in the channel.
-        if (message.AuthorId != userId || !await channels.CanWriteMessagesAsync(message.ChannelId, userId, cancellationToken))
+        if (message.AuthorId != userId || !await access.CanWriteAsync(message.ChannelId, userId, cancellationToken))
         {
             return MessageProblems.PermissionDenied();
         }
@@ -252,7 +250,7 @@ internal static class MessageEndpoints
             }
 
             var edited = await ToResponseAsync(message, identity, cancellationToken);
-            await realtime.PublishToChannelAsync(message.ChannelId, MessagingEvents.MessageEdited, edited, cancellationToken);
+            await access.PublishAsync(message.ChannelId, MessagingEvents.MessageEdited, edited, cancellationToken);
             return TypedResults.Ok(edited);
         }
 
@@ -264,20 +262,19 @@ internal static class MessageEndpoints
         long messageId,
         ClaimsPrincipal principal,
         MessagingDbContext db,
-        IChannelsModule channels,
+        ConversationAccess access,
         IIdentityModule identity,
-        IRealtimePublisher realtime,
         TimeProvider timeProvider,
         CancellationToken cancellationToken)
     {
         var userId = principal.GetRequiredUserId();
         var message = await db.Messages.SingleOrDefaultAsync(m => m.Id == messageId, cancellationToken);
-        if (message is null || !await channels.CanReadChannelAsync(message.ChannelId, userId, cancellationToken))
+        if (message is null || !await access.CanReadAsync(message.ChannelId, userId, cancellationToken))
         {
             return MessageProblems.NotFound();
         }
 
-        if (message.AuthorId != userId && !await channels.CanManageMessagesAsync(message.ChannelId, userId, cancellationToken))
+        if (message.AuthorId != userId && !await access.CanManageAsync(message.ChannelId, userId, cancellationToken))
         {
             return MessageProblems.PermissionDenied();
         }
@@ -297,7 +294,7 @@ internal static class MessageEndpoints
             }
 
             var tombstone = await ToResponseAsync(message, identity, cancellationToken);
-            await realtime.PublishToChannelAsync(message.ChannelId, MessagingEvents.MessageDeleted, tombstone, cancellationToken);
+            await access.PublishAsync(message.ChannelId, MessagingEvents.MessageDeleted, tombstone, cancellationToken);
         }
 
         return TypedResults.NoContent();

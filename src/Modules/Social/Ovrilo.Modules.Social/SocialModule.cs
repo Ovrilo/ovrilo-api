@@ -116,6 +116,12 @@ internal sealed class SocialModuleApi(SocialDbContext db) : ISocialModule
             .Select(f => f.UserLowId == userId ? f.UserHighId : f.UserLowId)
             .ToListAsync(cancellationToken);
 
+    public Task<bool> AreFriendsAsync(Guid userId, Guid otherUserId, CancellationToken cancellationToken = default)
+    {
+        var (low, high) = Friendship.Pair(userId, otherUserId);
+        return db.Friendships.AnyAsync(f => f.UserLowId == low && f.UserHighId == high, cancellationToken);
+    }
+
     public Task<bool> IsBlockedEitherWayAsync(Guid userId, Guid otherUserId, CancellationToken cancellationToken = default) =>
         db.Blocks.AnyAsync(
             b => (b.BlockerId == userId && b.BlockedId == otherUserId) || (b.BlockerId == otherUserId && b.BlockedId == userId),
