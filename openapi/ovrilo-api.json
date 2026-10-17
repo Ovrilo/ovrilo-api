@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Ovrilo API",
-    "version": "0.14.0"
+    "version": "0.15.0"
   },
   "paths": {
     "/version": {
@@ -116,6 +116,75 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CurrentUserResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/invitations/preview": {
+      "post": {
+        "tags": [
+          "Communities"
+        ],
+        "summary": "Shows the community a usable invitation leads to, without using it. The code goes in the body.",
+        "operationId": "PreviewInvitation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewInvitationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationPreviewResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -4136,6 +4205,44 @@
           }
         }
       },
+      "InvitationPreviewResponse": {
+        "required": [
+          "communityId",
+          "name",
+          "iconAssetId",
+          "memberCount",
+          "alreadyMember",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "communityId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "iconAssetId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "memberCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "alreadyMember": {
+            "type": "boolean"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "InvitationResponse": {
         "required": [
           "id",
@@ -4402,6 +4509,17 @@
           "userId": {
             "type": "string",
             "format": "uuid"
+          }
+        }
+      },
+      "PreviewInvitationRequest": {
+        "required": [
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
           }
         }
       },

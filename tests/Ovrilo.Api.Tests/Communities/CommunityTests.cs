@@ -100,6 +100,35 @@ public sealed class CommunityTests(OvriloApiFactory factory)
     }
 
     [Fact]
+    public async Task PreviewShowsTheCommunityWithoutUsingTheInvitation()
+    {
+        using var owner = await TestUser.RegisterAsync(factory);
+        using var friend = await TestUser.RegisterAsync(factory);
+        var community = await owner.CreateCommunityAsync("Raid squad");
+        var invitation = await owner.CreateInvitationAsync(community.Id, maxUses: 1);
+
+        static async Task<(HttpStatusCode Status, InvitationPreviewResponse? Body)> PreviewAsync(TestUser user, string code)
+        {
+            var response = await user.PostAsync("/invitations/preview", new PreviewInvitationRequest(code));
+            return (response.StatusCode, response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<InvitationPreviewResponse>(TestJson.Options) : null);
+        }
+
+        var preview = (await PreviewAsync(friend, $" {invitation.Code} ")).Body!;
+        Assert.Equal((community.Id, "Raid squad", 1, false), (preview.CommunityId, preview.Name, preview.MemberCount, preview.AlreadyMember));
+        // Previewing twice uses nothing: the single use is still there.
+        Assert.Equal(HttpStatusCode.OK, (await PreviewAsync(friend, invitation.Code)).Status);
+        Assert.True((await PreviewAsync(owner, invitation.Code)).Body!.AlreadyMember);
+        Assert.Equal(HttpStatusCode.OK, (await friend.AcceptAsync(invitation.Code)).StatusCode);
+
+        // Used up, unknown and malformed codes answer like accepting does.
+        foreach (var code in new[] { invitation.Code, "AAAAAAAAAAAA", "short" })
+        {
+            var (status, _) = await PreviewAsync(friend, code);
+            Assert.Equal(HttpStatusCode.NotFound, status);
+        }
+    }
+
+    [Fact]
     public async Task RevokedInvitationIsRejected()
     {
         using var owner = await TestUser.RegisterAsync(factory);

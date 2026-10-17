@@ -52,3 +52,14 @@ public sealed record InvitationResponse(
     DateTimeOffset ExpiresAt);
 
 public sealed record AcceptInvitationRequest(string Code);
+
+public sealed record PreviewInvitationRequest(string Code);
+
+/// <summary>What an invitation leads to, shown before joining. <c>MemberCount</c> counts active members.</summary>
+public sealed record InvitationPreviewResponse(
+    Guid CommunityId,
+    string Name,
+    Guid? IconAssetId,
+    int MemberCount,
+    bool AlreadyMember,
+    DateTimeOffset ExpiresAt);
