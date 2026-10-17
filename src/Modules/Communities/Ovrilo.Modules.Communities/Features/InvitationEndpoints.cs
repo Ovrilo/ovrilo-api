@@ -111,6 +111,57 @@ internal static class InvitationEndpoints
         return TypedResults.NoContent();
     }
 
+    /// <summary>Shows where a usable invitation leads without using it. Same answers as accepting for unusable codes.</summary>
+    public static async Task<Results<Ok<InvitationPreviewResponse>, ProblemHttpResult>> PreviewAsync(
+        PreviewInvitationRequest request,
+        ClaimsPrincipal principal,
+        CommunitiesDbContext db,
+        TimeProvider timeProvider,
+        CancellationToken cancellationToken)
+    {
+        var code = (request.Code ?? string.Empty).Trim();
+        if (code.Length != CodeLength)
+        {
+            return CommunityProblems.InvitationInvalid();
+        }
+
+        var now = timeProvider.GetDatabaseUtcNow();
+        var codeHash = HashCode(code);
+        var invitation = await db.Invitations.AsNoTracking()
+            .SingleOrDefaultAsync(
+                i => i.CodeHash == codeHash
+                    && i.RevokedAt == null
+                    && i.ExpiresAt > now
+                    && (i.MaxUses == null || i.UseCount < i.MaxUses),
+                cancellationToken);
+        var community = invitation is null
+            ? null
+            : await db.Communities.AsNoTracking().SingleOrDefaultAsync(c => c.Id == invitation.CommunityId && c.DeletedAt == null, cancellationToken);
+        if (invitation is null || community is null)
+        {
+            return CommunityProblems.InvitationInvalid();
+        }
+
+        var userId = principal.GetRequiredUserId();
+        var state = await db.Members.AsNoTracking()
+            .Where(m => m.CommunityId == community.Id && m.UserId == userId)
+            .Select(m => (MembershipState?)m.State)
+            .SingleOrDefaultAsync(cancellationToken);
+        if (state == MembershipState.Banned)
+        {
+            return CommunityProblems.Banned();
+        }
+
+        var memberCount = await db.Members.CountAsync(m => m.CommunityId == community.Id && m.State == MembershipState.Active, cancellationToken);
+        return TypedResults.Ok(new InvitationPreviewResponse(
+            community.Id,
+            community.Name,
+            community.IconAssetId,
+            memberCount,
+            state == MembershipState.Active,
+            invitation.ExpiresAt));
+    }
+
     /// <summary>Joins the invitation's community. Accepting while already a member succeeds without consuming a use.</summary>
     public static async Task<Results<Ok<CommunityResponse>, ProblemHttpResult>> AcceptAsync(
         AcceptInvitationRequest request,

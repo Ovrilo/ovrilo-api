@@ -109,6 +109,16 @@ public static class CommunitiesModule
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("Revokes an invitation.");
 
+        endpoints.MapPost("/invitations/preview", InvitationEndpoints.PreviewAsync)
+            .RequireAuthorization()
+            .RequireRateLimiting(InvitationRateLimitPolicy)
+            .WithTags("Communities")
+            .WithName("PreviewInvitation")
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Shows the community a usable invitation leads to, without using it. The code goes in the body.")
+            .ProducesProblem(StatusCodes.Status429TooManyRequests);
+
         endpoints.MapPost("/invitations/accept", InvitationEndpoints.AcceptAsync)
             .RequireAuthorization()
             .RequireRateLimiting(InvitationRateLimitPolicy)
