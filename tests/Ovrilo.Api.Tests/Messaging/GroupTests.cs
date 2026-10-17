@@ -43,9 +43,10 @@ public sealed class GroupTests(OvriloApiFactory factory)
     [Fact]
     public async Task FriendsTalkTogetherAndEveryMemberSeesUnread()
     {
-        using var ada = await TestUser.RegisterAsync(factory);
+        // Ada registers last, so her ID sorts after Bob's and Cid's: she is listed first only because she created the group.
         using var bob = await TestUser.RegisterAsync(factory);
         using var cid = await TestUser.RegisterAsync(factory);
+        using var ada = await TestUser.RegisterAsync(factory);
         using var eve = await TestUser.RegisterAsync(factory);
         await MakeFriendsAsync(ada, bob);
         await MakeFriendsAsync(ada, cid);

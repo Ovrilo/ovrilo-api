@@ -99,9 +99,10 @@ internal static class GroupEndpoints
             OwnerId = me,
             CreatedAt = now,
         };
-        // The creator joins first so they are the oldest member.
+        // The creator joins first so they are the oldest member (PostgreSQL keeps microseconds).
         group.Members.Add(new GroupMember { ConversationId = group.Id, UserId = me, JoinedAt = now });
-        group.Members.AddRange(others.Select(id => new GroupMember { ConversationId = group.Id, UserId = id, JoinedAt = now.AddTicks(1) }));
+        var joined = now.AddMicroseconds(1);
+        group.Members.AddRange(others.Select(id => new GroupMember { ConversationId = group.Id, UserId = id, JoinedAt = joined }));
         db.GroupConversations.Add(group);
         await db.SaveChangesAsync(cancellationToken);
 
