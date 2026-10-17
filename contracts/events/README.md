@@ -22,22 +22,23 @@ HTTP is described by `openapi/ovrilo-api.json`; realtime events are described he
 
 | Event | Payload | Sent when |
 | --- | --- | --- |
-| `MessageCreated` | `MessageResponse` | A new message was stored in a subscribed channel, or in one of your direct conversations (sent to both participants' own connections without subscribing; `channelId` is the conversation id). Not sent for idempotent replays of the same `clientMessageId`. |
+| `MessageCreated` | `MessageResponse` | A new message was stored in a subscribed channel, or in one of your direct or group conversations (sent to every member's own connections without subscribing; `channelId` is the conversation id). Not sent for idempotent replays of the same `clientMessageId`. |
 | `MessageEdited` | `MessageResponse` | Its author changed the content (`editedAt` set). |
 | `MessageDeleted` | `MessageResponse` (tombstone: `content: null`, `deletedAt` set) | The message was deleted. |
 
 | `ReadStateUpdated` | `ReadStateResponse` (`{ channelId, lastReadMessageId }`) | Sent to the reader's own connections when `PUT /channels/{channelId}/read-state` moved their position forward, so other devices clear the unread badge. No channel subscription needed. |
 | `FriendsChanged` | `{ change: "requestReceived" \| "friendAdded" \| "updated", user: SocialUserResponse }` | Sent to the user's own connections when their friends, requests or blocks changed; `user` is the other person. Clients refetch `GET /friends` and `GET /friends/requests` (and `/blocks`). No subscription needed. |
-| `CallRinging` | `{ conversationId, caller: { id, displayName, avatarAssetId } }` | Someone started a call in one of your direct conversations (`POST /dms/{id}/call`). Answer with `POST /dms/{id}/call/join`, decline with `/decline`. Sent to the callee's own connections. |
-| `CallAccepted` | `{ conversationId }` | The person you called answered. Sent to the caller's own connections. |
-| `CallEnded` | `{ conversationId, reason: "declined" \| "cancelled" \| "missed" }` | A ringing call stopped without being answered: declined by the callee, cancelled by the caller, or not answered within `VoiceSessions:Calls:RingSeconds` (default 30). Sent to both. A connected call simply ends when people leave the SFU room. |
+| `CallRinging` | `{ conversationId, caller: { id, displayName, avatarAssetId }, isGroup: boolean, groupName: string \| null }` | Someone started a call in one of your direct or group conversations (`POST /dms/{id}/call`; groups use the same endpoints with the group id). Answer with `POST /dms/{id}/call/join`, decline with `/decline`. Sent to each callee's own connections. |
+| `CallAccepted` | `{ conversationId }` | Someone answered. Sent to the caller's own connections on the first answer, and to the answering person's own connections (their other devices stop ringing). |
+| `CallEnded` | `{ conversationId, reason: "declined" \| "cancelled" \| "missed" }` | A ringing call stopped without being answered. `declined`: sent to the person who declined; the caller gets it once everyone they rang declined and nobody answered. `cancelled`: the caller hung up first; sent to the caller and everyone still ringing. `missed`: not answered within `VoiceSessions:Calls:RingSeconds` (default 30); sent to everyone still ringing, and to the caller when nobody answered. A connected call simply ends when people leave the SFU room. |
+| `GroupChanged` | `{ change: "added" \| "updated" \| "removed", groupId: uuid }` | Sent to members' own connections when a group was created, renamed, gained or lost members, or changed owner. `added`: you are now a member; `removed`: you left or were removed. Clients refetch `GET /groups`. |
 | `PresenceChanged` | `{ userId: uuid, online: boolean }` | A member of a subscribed community, or a friend, came online (first open connection) or went offline (last connection closed, after a grace period of `Realtime:PresenceGraceSeconds`, default 10, so reconnects do not flicker). |
 | `UserUpdated` | `{ userId: uuid, displayName: string, avatarAssetId: uuid \| null }` | A member of a subscribed community (or the caller, on their other devices) changed their avatar. Refetch the avatar by its new asset ID; `null` means initials. |
 | `CommunityUpdated` | `{ communityId: uuid, name: string, description: string \| null, iconAssetId: uuid \| null }` | A subscribed community's name, description or icon changed. |
 | `CommunityDeleted` | `{ communityId: uuid }` | The owner deleted a subscribed community. Remove it from the list, leave its voice channel if connected; its REST endpoints now answer `404`. |
 | `ChannelsChanged` | `{ communityId: uuid, channelId: uuid, change: "created" \| "updated" \| "deleted" }` | A channel of a subscribed community was created, renamed, re-topiced, moved or deleted. Refetch `GET /communities/{communityId}/channels`: a move renumbers the other channels of its type, so do not patch the list from the payload. Clients showing a deleted channel move away from it, and clients connected to a deleted voice channel leave it (the server does not eject them yet). |
 
-`MessageResponse` is the OpenAPI schema of the same name. `MessageEdited` and `MessageDeleted` for direct conversations also go to both participants' own connections.
+`MessageResponse` is the OpenAPI schema of the same name. `MessageEdited` and `MessageDeleted` for direct and group conversations also go to every member's own connections.
 
 Asset IDs never change content: a new avatar or icon gets a new ID, so clients can cache image bytes by asset ID and fetch short-lived URLs with `POST /media/download-urls`.
 

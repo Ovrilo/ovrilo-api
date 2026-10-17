@@ -117,6 +117,53 @@ public sealed class CallTests(OvriloApiFactory factory)
         bob.Dispose();
     }
 
+    [Fact]
+    public async Task GroupCallsRingEveryoneAndEachMemberAnswersForThemselves()
+    {
+        var app = App;
+        var (ada, bob, _) = await FriendsWithConversationAsync(app);
+        using var cid = await TestUser.RegisterAsync(app);
+        using var eve = await TestUser.RegisterAsync(app);
+        await ada.PostAsync("/friends/requests", new SendFriendRequestRequest(cid.Auth.User.Username));
+        await cid.PostAsync("/friends/requests", new SendFriendRequestRequest(ada.Auth.User.Username));
+        var created = await ada.PostAsync("/groups", new CreateGroupRequest([bob.Id, cid.Id], "crew"));
+        var group = (await created.Content.ReadFromJsonAsync<GroupConversationResponse>(TestJson.Options))!.Id;
+        await using var adaEvents = await ListenAsync(app, ada);
+        await using var bobEvents = await ListenAsync(app, bob);
+        await using var cidEvents = await ListenAsync(app, cid);
+
+        await CallAsync(ada, group, "");
+        foreach (var events in new[] { bobEvents, cidEvents })
+        {
+            var ringing = await events.NextAsync<CallRingingEvent>(CallEvents.CallRinging);
+            Assert.Equal((group, ada.Id, true, "crew"), (ringing.ConversationId, ringing.Caller.Id, ringing.IsGroup, ringing.GroupName));
+        }
+
+        Assert.Equal(new[] { bob.Id, cid.Id }.Order(), (await StateAsync(ada, group)).RingingIds!.Order());
+
+        // Bob says no for himself; Cid still rings and the caller hears nothing yet.
+        await bob.PostAsync($"/dms/{group}/call/decline", new { });
+        Assert.Equal(CallEndReason.Declined, (await bobEvents.NextAsync<CallEndedEvent>(CallEvents.CallEnded)).Reason);
+        Assert.Equal([cid.Id], (await StateAsync(ada, group)).RingingIds);
+        await CallAsync(cid, group, "/join");
+        Assert.Equal(CallEvents.CallAccepted, await adaEvents.NextNameAsync());
+        Assert.Null((await StateAsync(ada, group)).RingingFrom);
+
+        // Bob answers the next call; Cid misses it, and only Cid is told.
+        await CallAsync(ada, group, "");
+        await CallAsync(bob, group, "/join");
+        Assert.Equal(CallEvents.CallAccepted, await adaEvents.NextNameAsync());
+        Assert.Equal(CallEndReason.Missed, (await cidEvents.NextAsync<CallEndedEvent>(CallEvents.CallEnded)).Reason);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => adaEvents.NextNameAsync(TimeSpan.FromMilliseconds(500)));
+
+        // Members call even when they are not friends with each other; outsiders cannot.
+        await CallAsync(cid, group, "");
+        Assert.Equal(HttpStatusCode.NotFound, (await eve.PostAsync($"/dms/{group}/call", new { })).StatusCode);
+
+        ada.Dispose();
+        bob.Dispose();
+    }
+
     private static async Task<(TestUser Ada, TestUser Bob, Guid Conversation)> FriendsWithConversationAsync(WebApplicationFactory<Program> app)
     {
         var ada = await TestUser.RegisterAsync(app);
@@ -186,6 +233,13 @@ public sealed class CallTests(OvriloApiFactory factory)
                     return (T)payload;
                 }
             }
+        }
+
+        /// <summary>The name of the next event, whatever it is.</summary>
+        public async Task<string> NextNameAsync(TimeSpan? wait = null)
+        {
+            using var timeout = new CancellationTokenSource(wait ?? TimeSpan.FromSeconds(5));
+            return (await _events.Reader.ReadAsync(timeout.Token)).Name;
         }
 
         public ValueTask DisposeAsync() => _connection.DisposeAsync();

@@ -14,8 +14,11 @@ namespace Ovrilo.Modules.Messaging.Features;
 
 public sealed record OpenDirectMessageRequest(Guid UserId);
 
-/// <summary>The other person in a direct conversation.</summary>
-public sealed record ConversationUserResponse(Guid Id, string Username, string DisplayName, Guid? AvatarAssetId);
+/// <summary>A person in a direct or group conversation.</summary>
+public sealed record ConversationUserResponse(Guid Id, string Username, string DisplayName, Guid? AvatarAssetId)
+{
+    internal static ConversationUserResponse From(PublicUser user) => new(user.Id, user.Username, user.DisplayName, user.AvatarAssetId);
+}
 
 /// <summary>
 /// A direct conversation. Its <c>Id</c> is used as the channel ID with the message and read-state
@@ -102,37 +105,16 @@ internal static class DirectMessageEndpoints
         IReadOnlyDictionary<Guid, PublicUser> users,
         CancellationToken cancellationToken)
     {
-        var ids = conversations.Select(c => c.Id).ToList();
-        var reads = await db.ReadStates.AsNoTracking()
-            .Where(r => r.UserId == me && ids.Contains(r.ChannelId))
-            .ToDictionaryAsync(r => r.ChannelId, r => r.LastReadMessageId, cancellationToken);
-        var latest = await db.Messages.AsNoTracking()
-            .Where(m => ids.Contains(m.ChannelId) && m.DeletedAt == null)
-            .GroupBy(m => m.ChannelId)
-            .Select(g => new { ChannelId = g.Key, Id = g.Max(m => m.Id), At = g.Max(m => m.CreatedAt) })
-            .ToDictionaryAsync(x => x.ChannelId, cancellationToken);
-
+        var activity = await ConversationActivity.LoadAsync(db, me, [.. conversations.Select(c => c.Id)], cancellationToken);
         var result = new List<DirectConversationResponse>(conversations.Count);
         foreach (var conversation in conversations)
         {
-            long? read = reads.TryGetValue(conversation.Id, out var r) ? r : null;
-            var last = latest.GetValueOrDefault(conversation.Id);
-            var unread = 0;
-            if (last is not null && last.Id > (read ?? 0))
-            {
-                var after = read ?? 0;
-                unread = await db.Messages.AsNoTracking()
-                    .Where(m => m.ChannelId == conversation.Id && m.Id > after && m.DeletedAt == null && m.AuthorId != me)
-                    .Take(ReadStateEndpoints.UnreadCountCap)
-                    .CountAsync(cancellationToken);
-            }
-
-            var user = users[conversation.Other(me)];
+            var (lastId, lastAt, read, unread) = activity[conversation.Id];
             result.Add(new DirectConversationResponse(
                 conversation.Id,
-                new ConversationUserResponse(user.Id, user.Username, user.DisplayName, user.AvatarAssetId),
-                last?.Id,
-                last?.At ?? conversation.CreatedAt,
+                ConversationUserResponse.From(users[conversation.Other(me)]),
+                lastId,
+                lastAt ?? conversation.CreatedAt,
                 read,
                 unread));
         }

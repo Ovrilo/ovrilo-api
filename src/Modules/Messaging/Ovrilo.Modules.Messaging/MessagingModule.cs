@@ -89,6 +89,35 @@ public static class MessagingModule
             .WithName("ListDirectMessages")
             .WithSummary("Your direct conversations with unread counts, most recently active first.");
 
+        var groups = endpoints.MapGroup("/groups").WithTags("Group conversations").RequireAuthorization();
+
+        groups.MapPost("/", GroupEndpoints.CreateAsync)
+            .WithName("CreateGroup")
+            .WithSummary("Starts a group conversation with 1 to 9 of your friends. Use its id as the channel id for messages, read state and calls.")
+            .ProducesProblem(StatusCodes.Status403Forbidden);
+
+        groups.MapGet("/", GroupEndpoints.ListAsync)
+            .WithName("ListGroups")
+            .WithSummary("Your group conversations with members and unread counts, most recently active first.");
+
+        groups.MapPatch("/{groupId:guid}", GroupEndpoints.RenameAsync)
+            .WithName("RenameGroup")
+            .WithSummary("Renames a group (any member). An empty name clears it.")
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        groups.MapPost("/{groupId:guid}/members", GroupEndpoints.AddMemberAsync)
+            .WithName("AddGroupMember")
+            .WithSummary("Adds one of your friends to a group you are in (up to 10 people).")
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
+        groups.MapDelete("/{groupId:guid}/members/{userId:guid}", GroupEndpoints.RemoveMemberAsync)
+            .WithName("RemoveGroupMember")
+            .WithSummary("Leaves a group (your own id), or removes someone as its owner. The oldest member becomes owner when the owner leaves.")
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
         var messages = endpoints.MapGroup("/messages/{messageId:long}").WithTags("Messages").RequireAuthorization();
 
         messages.MapPatch("/", MessageEndpoints.EditAsync)

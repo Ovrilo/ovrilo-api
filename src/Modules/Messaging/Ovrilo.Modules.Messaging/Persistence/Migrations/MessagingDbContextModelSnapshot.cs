@@ -79,6 +79,55 @@ namespace Ovrilo.Modules.Messaging.Persistence.Migrations
                     b.ToTable("direct_conversations", "messaging");
                 });
 
+            modelBuilder.Entity("Ovrilo.Modules.Messaging.Domain.GroupConversation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_group_conversations");
+
+                    b.ToTable("group_conversations", "messaging");
+                });
+
+            modelBuilder.Entity("Ovrilo.Modules.Messaging.Domain.GroupMember", b =>
+                {
+                    b.Property<Guid>("ConversationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("conversation_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<DateTimeOffset>("JoinedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("joined_at");
+
+                    b.HasKey("ConversationId", "UserId")
+                        .HasName("pk_group_members");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_group_members_user_id");
+
+                    b.ToTable("group_members", "messaging");
+                });
+
             modelBuilder.Entity("Ovrilo.Modules.Messaging.Domain.Message", b =>
                 {
                     b.Property<long>("Id")
@@ -140,6 +189,21 @@ namespace Ovrilo.Modules.Messaging.Persistence.Migrations
                         .HasDatabaseName("ix_messages_channel_id_id");
 
                     b.ToTable("messages", "messaging");
+                });
+
+            modelBuilder.Entity("Ovrilo.Modules.Messaging.Domain.GroupMember", b =>
+                {
+                    b.HasOne("Ovrilo.Modules.Messaging.Domain.GroupConversation", null)
+                        .WithMany("Members")
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_group_members_group_conversations_conversation_id");
+                });
+
+            modelBuilder.Entity("Ovrilo.Modules.Messaging.Domain.GroupConversation", b =>
+                {
+                    b.Navigation("Members");
                 });
 #pragma warning restore 612, 618
         }
