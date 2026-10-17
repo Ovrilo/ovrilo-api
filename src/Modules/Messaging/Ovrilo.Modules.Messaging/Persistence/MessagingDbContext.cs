@@ -15,6 +15,8 @@ internal sealed class MessagingDbContext(DbContextOptions<MessagingDbContext> op
 
     public DbSet<ChannelReadState> ReadStates => Set<ChannelReadState>();
 
+    public DbSet<DirectConversation> DirectConversations => Set<DirectConversation>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(Schema);
@@ -37,6 +39,13 @@ internal sealed class MessagingDbContext(DbContextOptions<MessagingDbContext> op
         {
             state.ToTable("channel_read_states");
             state.HasKey(r => new { r.UserId, r.ChannelId });
+        });
+
+        modelBuilder.Entity<DirectConversation>(conversation =>
+        {
+            conversation.HasKey(c => c.Id);
+            conversation.HasIndex(c => new { c.UserLowId, c.UserHighId }).IsUnique();
+            conversation.HasIndex(c => c.UserHighId);
         });
     }
 }

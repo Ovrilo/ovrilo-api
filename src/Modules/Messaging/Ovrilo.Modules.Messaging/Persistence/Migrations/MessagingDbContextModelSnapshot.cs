@@ -47,6 +47,38 @@ namespace Ovrilo.Modules.Messaging.Persistence.Migrations
                     b.ToTable("channel_read_states", "messaging");
                 });
 
+            modelBuilder.Entity("Ovrilo.Modules.Messaging.Domain.DirectConversation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("UserHighId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_high_id");
+
+                    b.Property<Guid>("UserLowId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_low_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_direct_conversations");
+
+                    b.HasIndex("UserHighId")
+                        .HasDatabaseName("ix_direct_conversations_user_high_id");
+
+                    b.HasIndex("UserLowId", "UserHighId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_direct_conversations_user_low_id_user_high_id");
+
+                    b.ToTable("direct_conversations", "messaging");
+                });
+
             modelBuilder.Entity("Ovrilo.Modules.Messaging.Domain.Message", b =>
                 {
                     b.Property<long>("Id")

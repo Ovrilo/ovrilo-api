@@ -22,7 +22,7 @@ HTTP is described by `openapi/ovrilo-api.json`; realtime events are described he
 
 | Event | Payload | Sent when |
 | --- | --- | --- |
-| `MessageCreated` | `MessageResponse` | A new message was stored in a subscribed channel. Not sent for idempotent replays of the same `clientMessageId`. |
+| `MessageCreated` | `MessageResponse` | A new message was stored in a subscribed channel, or in one of your direct conversations (sent to both participants' own connections without subscribing; `channelId` is the conversation id). Not sent for idempotent replays of the same `clientMessageId`. |
 | `MessageEdited` | `MessageResponse` | Its author changed the content (`editedAt` set). |
 | `MessageDeleted` | `MessageResponse` (tombstone: `content: null`, `deletedAt` set) | The message was deleted. |
 
@@ -34,7 +34,7 @@ HTTP is described by `openapi/ovrilo-api.json`; realtime events are described he
 | `CommunityDeleted` | `{ communityId: uuid }` | The owner deleted a subscribed community. Remove it from the list, leave its voice channel if connected; its REST endpoints now answer `404`. |
 | `ChannelsChanged` | `{ communityId: uuid, channelId: uuid, change: "created" \| "updated" \| "deleted" }` | A channel of a subscribed community was created, renamed, re-topiced, moved or deleted. Refetch `GET /communities/{communityId}/channels`: a move renumbers the other channels of its type, so do not patch the list from the payload. Clients showing a deleted channel move away from it, and clients connected to a deleted voice channel leave it (the server does not eject them yet). |
 
-`MessageResponse` is the OpenAPI schema of the same name.
+`MessageResponse` is the OpenAPI schema of the same name. `MessageEdited` and `MessageDeleted` for direct conversations also go to both participants' own connections.
 
 Asset IDs never change content: a new avatar or icon gets a new ID, so clients can cache image bytes by asset ID and fetch short-lived URLs with `POST /media/download-urls`.
 

@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Ovrilo API",
-    "version": "0.11.0"
+    "version": "0.12.0"
   },
   "paths": {
     "/version": {
@@ -1899,6 +1899,115 @@
         ]
       }
     },
+    "/dms": {
+      "post": {
+        "tags": [
+          "Direct messages"
+        ],
+        "summary": "Opens the direct conversation with a friend (201), or returns the existing one (200). Use its id as the channel id for messages and read state.",
+        "operationId": "OpenDirectMessage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenDirectMessageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectConversationResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectConversationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Direct messages"
+        ],
+        "summary": "Your direct conversations with unread counts, most recently active first.",
+        "operationId": "ListDirectMessages",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DirectConversationResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/messages/{messageId}": {
       "patch": {
         "tags": [
@@ -2932,6 +3041,34 @@
           "owner"
         ]
       },
+      "ConversationUserResponse": {
+        "required": [
+          "id",
+          "username",
+          "displayName",
+          "avatarAssetId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "username": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "avatarAssetId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
       "CreateChannelRequest": {
         "required": [
           "name",
@@ -3068,6 +3205,48 @@
               "string"
             ],
             "format": "uuid"
+          }
+        }
+      },
+      "DirectConversationResponse": {
+        "required": [
+          "id",
+          "user",
+          "lastMessageId",
+          "lastActivityAt",
+          "lastReadMessageId",
+          "unreadCount"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "user": {
+            "$ref": "#/components/schemas/ConversationUserResponse"
+          },
+          "lastMessageId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "lastActivityAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastReadMessageId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "unreadCount": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -3500,6 +3679,18 @@
               "string"
             ],
             "format": "date-time"
+          }
+        }
+      },
+      "OpenDirectMessageRequest": {
+        "required": [
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
           }
         }
       },
@@ -3939,6 +4130,9 @@
     },
     {
       "name": "Auth"
+    },
+    {
+      "name": "Direct messages"
     },
     {
       "name": "Friends"

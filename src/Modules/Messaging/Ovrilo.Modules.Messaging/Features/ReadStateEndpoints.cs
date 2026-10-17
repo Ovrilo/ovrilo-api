@@ -46,13 +46,13 @@ internal static class ReadStateEndpoints
         MarkReadRequest request,
         ClaimsPrincipal principal,
         MessagingDbContext db,
-        IChannelsModule channels,
+        ConversationAccess access,
         IRealtimePublisher realtime,
         TimeProvider timeProvider,
         CancellationToken cancellationToken)
     {
         var userId = principal.GetRequiredUserId();
-        if (!await channels.CanReadChannelAsync(channelId, userId, cancellationToken))
+        if (!await access.CanReadAsync(channelId, userId, cancellationToken))
         {
             return MessageProblems.ChannelNotFound();
         }

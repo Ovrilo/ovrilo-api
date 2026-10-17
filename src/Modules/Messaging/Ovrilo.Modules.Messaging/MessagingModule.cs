@@ -27,6 +27,7 @@ public static class MessagingModule
     public static IServiceCollection AddMessagingModule(this IServiceCollection services)
     {
         services.AddModuleDbContext<MessagingDbContext>(MessagingDbContext.Schema);
+        services.AddScoped<ConversationAccess>();
         services.AddRateLimiter(options => options.AddPolicy(SendRateLimitPolicy, context =>
         {
             var section = context.RequestServices.GetRequiredService<IConfiguration>().GetSection(RateLimitSection);
@@ -72,6 +73,19 @@ public static class MessagingModule
             .WithName("ListCommunityUnread")
             .WithSummary("Read position, newest message and unread count (capped at 100) of each readable text channel. History from before the caller joined counts as read.")
             .ProducesProblem(StatusCodes.Status404NotFound);
+
+        var dms = endpoints.MapGroup("/dms").WithTags("Direct messages").RequireAuthorization();
+
+        dms.MapPost("/", DirectMessageEndpoints.OpenAsync)
+            .WithName("OpenDirectMessage")
+            .WithSummary("Opens the direct conversation with a friend (201), or returns the existing one (200). Use its id as the channel id for messages and read state.")
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        dms.MapGet("/", DirectMessageEndpoints.ListAsync)
+            .WithName("ListDirectMessages")
+            .WithSummary("Your direct conversations with unread counts, most recently active first.");
 
         var messages = endpoints.MapGroup("/messages/{messageId:long}").WithTags("Messages").RequireAuthorization();
 
