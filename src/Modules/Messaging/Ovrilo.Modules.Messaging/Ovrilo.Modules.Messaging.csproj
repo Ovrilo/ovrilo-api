@@ -14,6 +14,7 @@
     <ProjectReference Include="..\..\Communities\Ovrilo.Modules.Communities.Contracts\Ovrilo.Modules.Communities.Contracts.csproj" />
     <ProjectReference Include="..\..\Identity\Ovrilo.Modules.Identity.Contracts\Ovrilo.Modules.Identity.Contracts.csproj" />
     <ProjectReference Include="..\..\Social\Ovrilo.Modules.Social.Contracts\Ovrilo.Modules.Social.Contracts.csproj" />
+    <ProjectReference Include="..\Ovrilo.Modules.Messaging.Contracts\Ovrilo.Modules.Messaging.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

@@ -26,9 +26,15 @@ internal sealed class LiveKitTokenIssuer(IOptions<LiveKitOptions> options, TimeP
     /// <summary>Opaque room name; it is never an authorization credential.</summary>
     public static string RoomName(Guid channelId) => $"channel_{channelId:N}";
 
+    /// <summary>Room of a direct conversation's call.</summary>
+    public static string CallRoomName(Guid conversationId) => $"dm_{conversationId:N}";
+
     /// <summary>The voice engine's connection: identity is the user ID.</summary>
     public LiveKitGrant IssueVoiceGrant(Guid channelId, Guid userId, string displayName, bool canShareScreen = false) =>
-        Issue(channelId, userId.ToString(), displayName, new Dictionary<string, object>
+        IssueVoiceGrant(RoomName(channelId), userId, displayName, canShareScreen);
+
+    public LiveKitGrant IssueVoiceGrant(string room, Guid userId, string displayName, bool canShareScreen = false) =>
+        Issue(room, userId.ToString(), displayName, new Dictionary<string, object>
         {
             ["canPublish"] = true,
             ["canSubscribe"] = true,
@@ -41,7 +47,10 @@ internal sealed class LiveKitTokenIssuer(IOptions<LiveKitOptions> options, TimeP
     /// hidden from other participants and unable to publish anything.
     /// </summary>
     public LiveKitGrant IssueViewerGrant(Guid channelId, Guid userId, string displayName) =>
-        Issue(channelId, userId + ViewerIdentitySuffix, displayName, new Dictionary<string, object>
+        IssueViewerGrant(RoomName(channelId), userId, displayName);
+
+    public LiveKitGrant IssueViewerGrant(string room, Guid userId, string displayName) =>
+        Issue(room, userId + ViewerIdentitySuffix, displayName, new Dictionary<string, object>
         {
             ["canPublish"] = false,
             ["canSubscribe"] = true,
@@ -49,12 +58,11 @@ internal sealed class LiveKitTokenIssuer(IOptions<LiveKitOptions> options, TimeP
             ["hidden"] = true,
         });
 
-    private LiveKitGrant Issue(Guid channelId, string identity, string displayName, Dictionary<string, object> permissions)
+    private LiveKitGrant Issue(string room, string identity, string displayName, Dictionary<string, object> permissions)
     {
         var liveKit = options.Value;
         var now = timeProvider.GetUtcNow();
         var expiresAt = now.AddMinutes(liveKit.TokenLifetimeMinutes);
-        var room = RoomName(channelId);
         var video = new Dictionary<string, object>(permissions)
         {
             ["room"] = room,

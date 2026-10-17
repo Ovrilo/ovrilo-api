@@ -6,5 +6,5 @@ namespace Ovrilo.Api.System;
 /// </summary>
 public static class ApiContract
 {
-    public const string Version = "0.12.0";
+    public const string Version = "0.13.0";
 }

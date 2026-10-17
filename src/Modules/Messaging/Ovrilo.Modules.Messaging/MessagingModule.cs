@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 using Ovrilo.BuildingBlocks.Persistence;
 using Ovrilo.Modules.Identity.Contracts;
+using Ovrilo.Modules.Messaging.Contracts;
 using Ovrilo.Modules.Messaging.Features;
 using Ovrilo.Modules.Messaging.Persistence;
 
@@ -28,6 +29,7 @@ public static class MessagingModule
     {
         services.AddModuleDbContext<MessagingDbContext>(MessagingDbContext.Schema);
         services.AddScoped<ConversationAccess>();
+        services.AddScoped<IDirectConversations, DirectConversationsApi>();
         services.AddRateLimiter(options => options.AddPolicy(SendRateLimitPolicy, context =>
         {
             var section = context.RequestServices.GetRequiredService<IConfiguration>().GetSection(RateLimitSection);
