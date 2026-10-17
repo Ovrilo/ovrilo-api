@@ -17,6 +17,10 @@ internal sealed class MessagingDbContext(DbContextOptions<MessagingDbContext> op
 
     public DbSet<DirectConversation> DirectConversations => Set<DirectConversation>();
 
+    public DbSet<GroupConversation> GroupConversations => Set<GroupConversation>();
+
+    public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(Schema);
@@ -46,6 +50,20 @@ internal sealed class MessagingDbContext(DbContextOptions<MessagingDbContext> op
             conversation.HasKey(c => c.Id);
             conversation.HasIndex(c => new { c.UserLowId, c.UserHighId }).IsUnique();
             conversation.HasIndex(c => c.UserHighId);
+        });
+
+        modelBuilder.Entity<GroupConversation>(group =>
+        {
+            group.HasKey(g => g.Id);
+            group.Property(g => g.Name).HasMaxLength(GroupConversation.NameMaxLength);
+            group.HasMany(g => g.Members).WithOne().HasForeignKey(m => m.ConversationId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<GroupMember>(member =>
+        {
+            member.HasKey(m => new { m.ConversationId, m.UserId });
+            // "My groups".
+            member.HasIndex(m => m.UserId);
         });
     }
 }

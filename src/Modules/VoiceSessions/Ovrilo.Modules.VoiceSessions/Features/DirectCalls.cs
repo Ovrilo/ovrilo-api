@@ -16,28 +16,34 @@ namespace Ovrilo.Modules.VoiceSessions.Features;
 
 public sealed record CallUserResponse(Guid Id, string DisplayName, Guid? AvatarAssetId);
 
-/// <summary>Someone is calling you in a direct conversation.</summary>
-public sealed record CallRingingEvent(Guid ConversationId, CallUserResponse Caller);
+/// <summary>
+/// Someone is calling you in a direct or group conversation. <c>GroupName</c> is the group's
+/// name when it has one.
+/// </summary>
+public sealed record CallRingingEvent(Guid ConversationId, CallUserResponse Caller, bool IsGroup = false, string? GroupName = null);
 
-/// <summary>The person you called answered.</summary>
+/// <summary>Someone answered: sent to the caller (first answer only) and to the answering person's own connections.</summary>
 public sealed record CallAcceptedEvent(Guid ConversationId);
 
 public enum CallEndReason
 {
-    /// <summary>The person called said no.</summary>
+    /// <summary>The person called said no (in a group: everyone called said no).</summary>
     Declined,
 
     /// <summary>The caller hung up before an answer.</summary>
     Cancelled,
 
-    /// <summary>Nobody answered in time.</summary>
+    /// <summary>Nobody answered in time (sent to the caller only when nobody answered at all).</summary>
     Missed,
 }
 
 public sealed record CallEndedEvent(Guid ConversationId, CallEndReason Reason);
 
-/// <summary>A direct conversation's call: who is ringing whom, and who is connected.</summary>
-public sealed record CallStateResponse(Guid ConversationId, Guid? RingingFrom, IReadOnlyList<Guid> ParticipantIds);
+/// <summary>
+/// A conversation's call: who is ringing (<c>RingingFrom</c>), who is still being rung
+/// (<c>RingingIds</c>), and who is connected.
+/// </summary>
+public sealed record CallStateResponse(Guid ConversationId, Guid? RingingFrom, IReadOnlyList<Guid> ParticipantIds, IReadOnlyList<Guid>? RingingIds = null);
 
 /// <summary>Realtime event names, sent to the participants' own connections (contracts/events/README.md).</summary>
 public static class CallEvents
@@ -46,6 +52,9 @@ public static class CallEvents
     public const string CallAccepted = nameof(CallAccepted);
     public const string CallEnded = nameof(CallEnded);
 }
+
+/// <summary>A ringing call: who called, who has not answered yet, and whether anyone has.</summary>
+internal sealed record RingState(Guid Caller, IReadOnlyList<Guid> Pending, bool Answered);
 
 /// <summary>
 /// Calls that are ringing, per conversation. In memory, like presence: correct for the single API
@@ -62,18 +71,18 @@ internal sealed class CallTracker(
 
     private TimeSpan RingFor => TimeSpan.FromSeconds(configuration.GetValue("VoiceSessions:Calls:RingSeconds", 30.0));
 
-    public (Guid Caller, Guid Callee)? Ringing(Guid conversationId)
+    public RingState? Ringing(Guid conversationId)
     {
         lock (gate)
         {
-            return rings.TryGetValue(conversationId, out var ring) ? (ring.Caller, ring.Callee) : null;
+            return rings.TryGetValue(conversationId, out var ring) ? ring.State() : null;
         }
     }
 
-    /// <summary>Starts ringing (replacing an older ring); after the ring time it ends as missed.</summary>
-    public void Start(Guid conversationId, Guid caller, Guid callee)
+    /// <summary>Starts ringing the callees (replacing an older ring); after the ring time it ends as missed.</summary>
+    public void Start(Guid conversationId, Guid caller, IEnumerable<Guid> callees)
     {
-        var ring = new Ring(caller, callee, new CancellationTokenSource());
+        var ring = new Ring(caller, [.. callees], new CancellationTokenSource());
         lock (gate)
         {
             if (rings.Remove(conversationId, out var old))
@@ -87,8 +96,34 @@ internal sealed class CallTracker(
         _ = MissAfterAsync(conversationId, ring);
     }
 
-    /// <summary>Stops ringing; returns the ring that was going on, if any.</summary>
-    public (Guid Caller, Guid Callee)? Stop(Guid conversationId)
+    /// <summary>
+    /// <paramref name="userId"/> answers or declines. Returns the ring as it was before, or null when
+    /// they were not being rung. The ring stops once nobody is left to ring.
+    /// </summary>
+    public RingState? Respond(Guid conversationId, Guid userId, bool answer)
+    {
+        lock (gate)
+        {
+            if (!rings.TryGetValue(conversationId, out var ring) || !ring.Pending.Contains(userId))
+            {
+                return null;
+            }
+
+            var before = ring.State();
+            ring.Pending.Remove(userId);
+            ring.Answered |= answer;
+            if (ring.Pending.Count == 0)
+            {
+                rings.Remove(conversationId);
+                ring.Timeout.Cancel();
+            }
+
+            return before;
+        }
+    }
+
+    /// <summary>Stops the whole ring (the caller hung up); returns it, if one was going on.</summary>
+    public RingState? Stop(Guid conversationId)
     {
         lock (gate)
         {
@@ -98,7 +133,7 @@ internal sealed class CallTracker(
             }
 
             ring.Timeout.Cancel();
-            return (ring.Caller, ring.Callee);
+            return ring.State();
         }
     }
 
@@ -107,6 +142,7 @@ internal sealed class CallTracker(
         try
         {
             await Task.Delay(RingFor, time, ring.Timeout.Token);
+            RingState missed;
             lock (gate)
             {
                 if (!rings.TryGetValue(conversationId, out var current) || current != ring)
@@ -115,11 +151,19 @@ internal sealed class CallTracker(
                 }
 
                 rings.Remove(conversationId);
+                missed = ring.State();
             }
 
             var ended = new CallEndedEvent(conversationId, CallEndReason.Missed);
-            await realtime.PublishToUserAsync(ring.Caller, CallEvents.CallEnded, ended);
-            await realtime.PublishToUserAsync(ring.Callee, CallEvents.CallEnded, ended);
+            if (!missed.Answered)
+            {
+                await realtime.PublishToUserAsync(missed.Caller, CallEvents.CallEnded, ended);
+            }
+
+            foreach (var callee in missed.Pending)
+            {
+                await realtime.PublishToUserAsync(callee, CallEvents.CallEnded, ended);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -135,7 +179,18 @@ internal sealed class CallTracker(
         }
     }
 
-    private sealed record Ring(Guid Caller, Guid Callee, CancellationTokenSource Timeout);
+    private sealed class Ring(Guid caller, HashSet<Guid> pending, CancellationTokenSource timeout)
+    {
+        public Guid Caller { get; } = caller;
+
+        public HashSet<Guid> Pending { get; } = pending;
+
+        public bool Answered { get; set; }
+
+        public CancellationTokenSource Timeout { get; } = timeout;
+
+        public RingState State() => new(Caller, [.. Pending], Answered);
+    }
 }
 
 internal static partial class CallLog
@@ -144,10 +199,10 @@ internal static partial class CallLog
     public static partial void MissedNotSent(ILogger logger, Guid conversationId, Exception exception);
 }
 
-/// <summary>One-to-one calls in direct conversations: the room is <c>dm_{conversationId}</c>.</summary>
+/// <summary>Calls in direct and group conversations: the room is <c>dm_{conversationId}</c>.</summary>
 internal static class DirectCalls
 {
-    /// <summary>Starts a call and rings the other person. If they are already calling you, this answers them.</summary>
+    /// <summary>Starts a call and rings the other members. If you are being rung, this answers instead.</summary>
     public static async Task<Results<Ok<VoiceJoinResponse>, ProblemHttpResult>> StartAsync(
         Guid conversationId,
         ClaimsPrincipal principal,
@@ -160,22 +215,25 @@ internal static class DirectCalls
         CancellationToken cancellationToken)
     {
         var me = principal.GetRequiredUserId();
-        var (problem, user, other) = await AuthorizeAsync(conversationId, me, conversations, identity, cancellationToken);
+        var (problem, user, conversation) = await AuthorizeAsync(conversationId, me, conversations, identity, cancellationToken);
         if (problem is not null)
         {
             return problem;
         }
 
-        if (calls.Ringing(conversationId) is { } ringing && ringing.Caller == other)
+        if (!await AnswerAsync(conversationId, me, calls, realtime, cancellationToken))
         {
-            calls.Stop(conversationId);
-            await realtime.PublishToUserAsync(other, CallEvents.CallAccepted, new CallAcceptedEvent(conversationId), cancellationToken);
-        }
-        else
-        {
-            calls.Start(conversationId, me, other);
-            var caller = new CallUserResponse(user!.Id, user.DisplayName, user.AvatarAssetId);
-            await realtime.PublishToUserAsync(other, CallEvents.CallRinging, new CallRingingEvent(conversationId, caller), cancellationToken);
+            var callees = conversation!.Others(me).ToList();
+            calls.Start(conversationId, me, callees);
+            var ringing = new CallRingingEvent(
+                conversationId,
+                new CallUserResponse(user!.Id, user.DisplayName, user.AvatarAssetId),
+                conversation.IsGroup,
+                conversation.Name);
+            foreach (var callee in callees)
+            {
+                await realtime.PublishToUserAsync(callee, CallEvents.CallRinging, ringing, cancellationToken);
+            }
         }
 
         return TypedResults.Ok(Grant(conversationId, user!, issuer, screenSharing));
@@ -200,16 +258,14 @@ internal static class DirectCalls
             return problem;
         }
 
-        if (calls.Ringing(conversationId) is { } ringing && ringing.Callee == me)
-        {
-            calls.Stop(conversationId);
-            await realtime.PublishToUserAsync(ringing.Caller, CallEvents.CallAccepted, new CallAcceptedEvent(conversationId), cancellationToken);
-        }
-
+        await AnswerAsync(conversationId, me, calls, realtime, cancellationToken);
         return TypedResults.Ok(Grant(conversationId, user!, issuer, screenSharing));
     }
 
-    /// <summary>Stops a ringing call: the person called declines, or the caller hangs up first. Idempotent.</summary>
+    /// <summary>
+    /// Stops ringing: someone being rung declines (for themselves), or the caller hangs up first
+    /// (for everyone). Idempotent.
+    /// </summary>
     public static async Task<Results<NoContent, ProblemHttpResult>> DeclineAsync(
         Guid conversationId,
         ClaimsPrincipal principal,
@@ -225,14 +281,25 @@ internal static class DirectCalls
             return NotFound();
         }
 
-        if (calls.Ringing(conversationId) is not { } ringing || calls.Stop(conversationId) is null)
+        if (calls.Ringing(conversationId)?.Caller == me && calls.Stop(conversationId) is { } cancelled)
         {
-            return TypedResults.NoContent();
+            var ended = new CallEndedEvent(conversationId, CallEndReason.Cancelled);
+            foreach (var userId in cancelled.Pending.Prepend(me))
+            {
+                await realtime.PublishToUserAsync(userId, CallEvents.CallEnded, ended, cancellationToken);
+            }
+        }
+        else if (calls.Respond(conversationId, me, answer: false) is { } ring)
+        {
+            var declined = new CallEndedEvent(conversationId, CallEndReason.Declined);
+            await realtime.PublishToUserAsync(me, CallEvents.CallEnded, declined, cancellationToken);
+            // The caller hears "declined" once everyone they rang has said no.
+            if (!ring.Answered && ring.Pending.Count == 1)
+            {
+                await realtime.PublishToUserAsync(ring.Caller, CallEvents.CallEnded, declined, cancellationToken);
+            }
         }
 
-        var ended = new CallEndedEvent(conversationId, me == ringing.Callee ? CallEndReason.Declined : CallEndReason.Cancelled);
-        await realtime.PublishToUserAsync(ringing.Caller, CallEvents.CallEnded, ended, cancellationToken);
-        await realtime.PublishToUserAsync(ringing.Callee, CallEvents.CallEnded, ended, cancellationToken);
         return TypedResults.NoContent();
     }
 
@@ -265,7 +332,8 @@ internal static class DirectCalls
             return ApiProblems.Create(StatusCodes.Status503ServiceUnavailable, "voice.directory_unavailable", "Who is in the call is unknown right now.");
         }
 
-        return TypedResults.Ok(new CallStateResponse(conversationId, calls.Ringing(conversationId)?.Caller, participants));
+        var ringing = calls.Ringing(conversationId);
+        return TypedResults.Ok(new CallStateResponse(conversationId, ringing?.Caller, participants, ringing?.Pending ?? []));
     }
 
     /// <summary>The webview's watch-only grant for screen shares in the call (ADR-0017).</summary>
@@ -294,8 +362,29 @@ internal static class DirectCalls
         return TypedResults.Ok(new VoiceWatchResponse(grant.ServerUrl, grant.Token, grant.ExpiresAt));
     }
 
-    /// <summary>Participants may call while they are friends without a block.</summary>
-    private static async Task<(ProblemHttpResult? Problem, PublicUser? User, Guid Other)> AuthorizeAsync(
+    /// <summary>If <paramref name="me"/> is being rung, answers: tells the caller (on the first answer) and my other devices.</summary>
+    private static async Task<bool> AnswerAsync(Guid conversationId, Guid me, CallTracker calls, IRealtimePublisher realtime, CancellationToken cancellationToken)
+    {
+        if (calls.Respond(conversationId, me, answer: true) is not { } ring)
+        {
+            return false;
+        }
+
+        var accepted = new CallAcceptedEvent(conversationId);
+        if (!ring.Answered)
+        {
+            await realtime.PublishToUserAsync(ring.Caller, CallEvents.CallAccepted, accepted, cancellationToken);
+        }
+
+        await realtime.PublishToUserAsync(me, CallEvents.CallAccepted, accepted, cancellationToken);
+        return true;
+    }
+
+    /// <summary>
+    /// Direct conversations: the two may call while they are friends without a block. Groups: any
+    /// member may call.
+    /// </summary>
+    private static async Task<(ProblemHttpResult? Problem, PublicUser? User, ConversationInfo? Conversation)> AuthorizeAsync(
         Guid conversationId,
         Guid me,
         IDirectConversations conversations,
@@ -305,17 +394,18 @@ internal static class DirectCalls
         var conversation = await conversations.FindAsync(conversationId, cancellationToken);
         if (conversation is null || !conversation.Includes(me))
         {
-            return (NotFound(), null, Guid.Empty);
+            return (NotFound(), null, null);
         }
 
-        var other = conversation.Other(me);
         var user = await identity.GetPublicUserAsync(me, cancellationToken);
-        if (user is null || !await conversations.CanTalkAsync(me, other, cancellationToken))
+        var allowed = user is not null
+            && (conversation.IsGroup || await conversations.CanTalkAsync(me, conversation.Others(me).First(), cancellationToken));
+        if (!allowed)
         {
-            return (ApiProblems.Create(StatusCodes.Status403Forbidden, "voice.call_not_allowed", "You can only call your friends."), null, other);
+            return (ApiProblems.Create(StatusCodes.Status403Forbidden, "voice.call_not_allowed", "You can only call your friends."), null, conversation);
         }
 
-        return (null, user, other);
+        return (null, user, conversation);
     }
 
     private static VoiceJoinResponse Grant(Guid conversationId, PublicUser user, LiveKitTokenIssuer issuer, IOptions<ScreenSharingOptions> screenSharing)
