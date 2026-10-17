@@ -27,6 +27,7 @@
     <Project Path="src/Modules/Social/Ovrilo.Modules.Social/Ovrilo.Modules.Social.csproj" />
   </Folder>
   <Folder Name="/src/Modules/Messaging/">
+    <Project Path="src/Modules/Messaging/Ovrilo.Modules.Messaging.Contracts/Ovrilo.Modules.Messaging.Contracts.csproj" />
     <Project Path="src/Modules/Messaging/Ovrilo.Modules.Messaging/Ovrilo.Modules.Messaging.csproj" />
   </Folder>
   <Folder Name="/src/Modules/VoiceSessions/">

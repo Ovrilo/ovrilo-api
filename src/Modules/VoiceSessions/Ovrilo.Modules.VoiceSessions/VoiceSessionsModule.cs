@@ -24,6 +24,7 @@ public static class VoiceSessionsModule
 
         services.AddOptions<ScreenSharingOptions>().BindConfiguration(ScreenSharingOptions.SectionName);
         services.AddSingleton<LiveKitTokenIssuer>();
+        services.AddSingleton<CallTracker>();
         services.AddMemoryCache();
         services.AddHttpClient<IVoiceRoomDirectory, LiveKitRoomDirectory>(client => client.Timeout = TimeSpan.FromSeconds(3));
         return services;
@@ -44,6 +45,37 @@ public static class VoiceSessionsModule
             .WithTags("Voice")
             .WithName("WatchVoiceChannelScreenShares")
             .WithSummary("Issues a short-lived, hidden, subscribe-only SFU grant for watching screen shares in a voice channel. Same rights as joining; 403 voice.screen_share_disabled while the server has screen sharing off.")
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        var call = endpoints.MapGroup("/dms/{conversationId:guid}/call").WithTags("Calls").RequireAuthorization();
+
+        call.MapPost("/", DirectCalls.StartAsync)
+            .WithName("StartCall")
+            .WithSummary("Starts a call in a direct conversation and rings the other person (answers them if they are already calling). Returns the SFU grant.")
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        call.MapPost("/join", DirectCalls.JoinAsync)
+            .WithName("JoinCall")
+            .WithSummary("Answers a ringing call, or joins one that is going on. Returns the SFU grant.")
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        call.MapPost("/decline", DirectCalls.DeclineAsync)
+            .WithName("DeclineCall")
+            .WithSummary("Stops a ringing call: declines it, or cancels it as the caller. Idempotent.")
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        call.MapGet("/", DirectCalls.GetAsync)
+            .WithName("GetCall")
+            .WithSummary("Whether the conversation's call is ringing and who is in it.")
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+
+        call.MapPost("/watch", DirectCalls.WatchAsync)
+            .WithName("WatchCallScreenShares")
+            .WithSummary("Issues a hidden, subscribe-only SFU grant for watching screen shares in the call.")
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
