@@ -122,25 +122,26 @@ public sealed class PresenceTests(OvriloApiFactory factory)
         await watcher.InvokeAsync<CommunityPresenceResponse?>("SubscribeCommunity", community.Id);
 
         var memberId = member.Auth.User.Id;
-        var valorant = new UserActivity(ActivityType.Playing, "Valorant");
-        var minecraft = new UserActivity(ActivityType.Playing, "Minecraft");
         await using var desktop = await ConnectAsync(member);
         await NextAsync(events);
 
-        // The name is cleaned up; setting the same game again is not a change.
+        // The name is cleaned up and the server notes when it started; the same game again is not a change.
+        var before = DateTimeOffset.UtcNow.AddSeconds(-1);
         await desktop.InvokeAsync("SetActivity", "  Valor\u0007ant \n");
-        Assert.Equal(new PresenceChangedEvent(memberId, true, Availability.Online, valorant), await NextAsync(events));
+        var valorant = Playing(await NextAsync(events), memberId);
+        Assert.Equal("Valorant", valorant.Name);
+        Assert.InRange(valorant.StartedAt, before, DateTimeOffset.UtcNow.AddSeconds(1));
         await desktop.InvokeAsync("SetActivity", "Valorant");
         Assert.False(await HasEventWithinAsync(events, TimeSpan.FromMilliseconds(300)));
         var snapshot = await watcher.InvokeAsync<CommunityPresenceResponse?>("SubscribeCommunity", community.Id);
         Assert.Contains(new UserPresence(memberId, Availability.Online, valorant), snapshot!.Statuses!);
 
-        // A second device playing something else shows; when it leaves, the first one's game is back.
+        // A second device playing something else shows; when it leaves, the first one's game is back, still from its start.
         var laptop = await ConnectAsync(member);
         await laptop.InvokeAsync("SetActivity", "Minecraft");
-        Assert.Equal(new PresenceChangedEvent(memberId, true, Availability.Online, minecraft), await NextAsync(events));
+        Assert.Equal("Minecraft", Playing(await NextAsync(events), memberId).Name);
         await laptop.DisposeAsync();
-        Assert.Equal(new PresenceChangedEvent(memberId, true, Availability.Online, valorant), await NextAsync(events));
+        Assert.Equal(valorant, Playing(await NextAsync(events), memberId));
 
         await desktop.InvokeAsync("SetActivity", (string?)null);
         Assert.Equal(new PresenceChangedEvent(memberId, true, Availability.Online), await NextAsync(events));
@@ -152,6 +153,13 @@ public sealed class PresenceTests(OvriloApiFactory factory)
         Assert.Equal(new PresenceChangedEvent(memberId, false), await NextAsync(events));
         await desktop.InvokeAsync("SetActivity", "Minecraft");
         Assert.False(await HasEventWithinAsync(events, TimeSpan.FromMilliseconds(300)));
+    }
+
+    private static UserActivity Playing(PresenceChangedEvent change, Guid userId)
+    {
+        Assert.Equal((userId, true, Availability.Online), (change.UserId, change.Online, change.Status));
+        Assert.Equal(ActivityType.Playing, change.Activity!.Type);
+        return change.Activity;
     }
 
     private static Task<HttpResponseMessage> SetStatusAsync(TestUser user, Availability availability) =>

@@ -22,8 +22,11 @@ public enum ActivityType
     Playing,
 }
 
-/// <summary>What a user is doing: for now, the game they play.</summary>
-public sealed record UserActivity(ActivityType Type, string Name)
+/// <summary>
+/// What a user is doing: for now, the game they play. <c>StartedAt</c> is when the server first
+/// saw it (server clock, so clients can show how long without trusting device clocks).
+/// </summary>
+public sealed record UserActivity(ActivityType Type, string Name, DateTimeOffset StartedAt = default)
 {
     public const int NameMaxLength = 128;
 
@@ -147,9 +150,12 @@ public sealed class PresenceTracker(
             {
                 entry.Activities.Remove(connectionId);
             }
-            else if (!entry.Activities.TryGetValue(connectionId, out var current) || current.Activity != activity)
+            else if (!entry.Activities.TryGetValue(connectionId, out var current)
+                || current.Activity.Type != activity.Type
+                || current.Activity.Name != activity.Name)
             {
-                entry.Activities[connectionId] = (activity, ++entry.ActivityClock);
+                // A new game starts the clock; reporting the same one again keeps it running.
+                entry.Activities[connectionId] = (activity with { StartedAt = time.GetUtcNow() }, ++entry.ActivityClock);
             }
         });
 
