@@ -233,10 +233,45 @@ internal static class GroupEndpoints
             return ApiProblems.Create(StatusCodes.Status403Forbidden, "messaging.group_not_owner", "Only the group owner can remove people.");
         }
 
+        if (!await RemoveLockedAsync(db, group, userId, cancellationToken))
+        {
+            return TypedResults.NoContent();
+        }
+
+        await transaction.CommitAsync(cancellationToken);
+        await NotifyAsync(realtime, [userId], GroupChange.Removed, group.Id, cancellationToken);
+        await NotifyAsync(realtime, group.Members.Select(m => m.UserId), GroupChange.Updated, group.Id, cancellationToken);
+        return TypedResults.NoContent();
+    }
+
+    /// <summary>
+    /// Takes a deleted account out of every group it was in (owners hand over as when leaving);
+    /// the remaining members refetch their lists.
+    /// </summary>
+    public static async Task LeaveAllAsync(MessagingDbContext db, IRealtimePublisher realtime, Guid userId, CancellationToken cancellationToken)
+    {
+        var groupIds = await db.GroupMembers.Where(m => m.UserId == userId).Select(m => m.ConversationId).ToListAsync(cancellationToken);
+        foreach (var groupId in groupIds)
+        {
+            await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+            var group = await LockAsync(db, groupId, cancellationToken);
+            if (group is null || !await RemoveLockedAsync(db, group, userId, cancellationToken))
+            {
+                continue;
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+            await NotifyAsync(realtime, group.Members.Select(m => m.UserId), GroupChange.Updated, group.Id, cancellationToken);
+        }
+    }
+
+    /// <summary>Removes a member from a locked group, handing ownership to the longest-standing member. False when they were not in it.</summary>
+    private static async Task<bool> RemoveLockedAsync(MessagingDbContext db, GroupConversation group, Guid userId, CancellationToken cancellationToken)
+    {
         var member = group.Members.Find(m => m.UserId == userId);
         if (member is null)
         {
-            return TypedResults.NoContent();
+            return false;
         }
 
         group.Members.Remove(member);
@@ -246,11 +281,7 @@ internal static class GroupEndpoints
         }
 
         await db.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-
-        await NotifyAsync(realtime, [userId], GroupChange.Removed, group.Id, cancellationToken);
-        await NotifyAsync(realtime, group.Members.Select(m => m.UserId), GroupChange.Updated, group.Id, cancellationToken);
-        return TypedResults.NoContent();
+        return true;
     }
 
     /// <summary>Loads the group with its members, holding a row lock until the transaction ends so membership changes queue up.</summary>

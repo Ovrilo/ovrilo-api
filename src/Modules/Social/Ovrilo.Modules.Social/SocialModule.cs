@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
+using Ovrilo.BuildingBlocks;
 using Ovrilo.BuildingBlocks.Persistence;
 using Ovrilo.Modules.Identity.Contracts;
 using Ovrilo.Modules.Social.Contracts;
@@ -28,6 +29,7 @@ public static class SocialModule
     {
         services.AddModuleDbContext<SocialDbContext>(SocialDbContext.Schema);
         services.AddScoped<ISocialModule, SocialModuleApi>();
+        services.AddScoped<IAccountDeletionParticipant, SocialAccountDeletion>();
         services.AddRateLimiter(options => options.AddPolicy(RequestRateLimitPolicy, context =>
         {
             var section = context.RequestServices.GetRequiredService<IConfiguration>().GetSection(RateLimitSection);

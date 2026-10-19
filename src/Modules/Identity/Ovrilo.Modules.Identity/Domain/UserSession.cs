@@ -51,4 +51,5 @@ internal static class RevocationReasons
     public const string SignOut = "sign_out";
     public const string SignOutEverywhere = "sign_out_everywhere";
     public const string RefreshTokenReuse = "refresh_token_reuse";
+    public const string AccountDeleted = "account_deleted";
 }

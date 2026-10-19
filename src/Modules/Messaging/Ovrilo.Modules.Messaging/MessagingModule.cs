@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
+using Ovrilo.BuildingBlocks;
 using Ovrilo.BuildingBlocks.Persistence;
 using Ovrilo.Modules.Identity.Contracts;
 using Ovrilo.Modules.Messaging.Contracts;
@@ -30,6 +31,7 @@ public static class MessagingModule
         services.AddModuleDbContext<MessagingDbContext>(MessagingDbContext.Schema);
         services.AddScoped<ConversationAccess>();
         services.AddScoped<IDirectConversations, DirectConversationsApi>();
+        services.AddScoped<IAccountDeletionParticipant, MessagingAccountDeletion>();
         services.AddRateLimiter(options => options.AddPolicy(SendRateLimitPolicy, context =>
         {
             var section = context.RequestServices.GetRequiredService<IConfiguration>().GetSection(RateLimitSection);
