@@ -9,9 +9,9 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 
 using Ovrilo.Api.Realtime;
-using Ovrilo.Modules.Identity.Contracts;
 using Ovrilo.Api.Tests.Communities;
 using Ovrilo.Api.Tests.Identity;
+using Ovrilo.Modules.Identity.Contracts;
 using Ovrilo.Modules.Social.Features;
 
 namespace Ovrilo.Api.Tests.Social;
