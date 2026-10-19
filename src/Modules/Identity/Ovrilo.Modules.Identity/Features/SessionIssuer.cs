@@ -52,5 +52,5 @@ internal sealed class SessionIssuer(
     }
 
     public static CurrentUserResponse ToCurrentUser(User user) =>
-        new(user.Id, user.Username, user.DisplayName, user.Email, user.EmailVerifiedAt is not null, user.CreatedAt, user.AvatarAssetId);
+        new(user.Id, user.Username, user.DisplayName, user.Email, user.EmailVerifiedAt is not null, user.CreatedAt, user.AvatarAssetId, user.Availability);
 }

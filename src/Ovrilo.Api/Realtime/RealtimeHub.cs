@@ -24,13 +24,19 @@ public sealed class RealtimeHub(
 {
     public const string Path = "/hubs/realtime";
 
-    public override Task OnConnectedAsync() => presence.ConnectedAsync(Context.User!.GetRequiredUserId());
+    public override Task OnConnectedAsync() => presence.ConnectedAsync(Context.User!.GetRequiredUserId(), Context.ConnectionId);
 
     public override Task OnDisconnectedAsync(Exception? exception)
     {
-        presence.Disconnected(Context.User!.GetRequiredUserId());
+        presence.Disconnected(Context.User!.GetRequiredUserId(), Context.ConnectionId);
         return Task.CompletedTask;
     }
+
+    /// <summary>
+    /// This device's computer is idle (no keyboard or mouse input for a while) or back. The user
+    /// shows as away while every connected device is idle.
+    /// </summary>
+    public Task SetIdle(bool idle) => presence.SetIdleAsync(Context.User!.GetRequiredUserId(), Context.ConnectionId, idle);
 
     /// <summary>
     /// Starts receiving PresenceChanged for the community's members. Returns the members online now,
@@ -47,7 +53,8 @@ public sealed class RealtimeHub(
         // Join first: a change after the snapshot is then delivered as an event, never lost in between.
         await Groups.AddToGroupAsync(Context.ConnectionId, RealtimeGroups.Community(communityId), Context.ConnectionAborted);
         var members = await communities.ListMemberIdsAsync(communityId, Context.ConnectionAborted);
-        return new CommunityPresenceResponse([.. members.Where(presence.IsOnline)]);
+        var present = Present(members);
+        return new CommunityPresenceResponse([.. present.Select(p => p.UserId)], present);
     }
 
     /// <summary>
@@ -57,8 +64,12 @@ public sealed class RealtimeHub(
     public async Task<FriendsPresenceResponse> GetFriendsPresence()
     {
         var friends = await social.ListFriendIdsAsync(Context.User!.GetRequiredUserId(), Context.ConnectionAborted);
-        return new FriendsPresenceResponse([.. friends.Where(presence.IsOnline)]);
+        var present = Present(friends);
+        return new FriendsPresenceResponse([.. present.Select(p => p.UserId)], present);
     }
+
+    private List<UserPresence> Present(IEnumerable<Guid> userIds) =>
+        [.. userIds.Select(id => (Id: id, Status: presence.StatusOf(id))).Where(p => p.Status is not null).Select(p => new UserPresence(p.Id, p.Status!.Value))];
 
     public Task UnsubscribeCommunity(Guid communityId) =>
         Groups.RemoveFromGroupAsync(Context.ConnectionId, RealtimeGroups.Community(communityId), Context.ConnectionAborted);
@@ -86,9 +97,11 @@ internal sealed class RealtimeUserIdProvider : IUserIdProvider
     public string? GetUserId(HubConnectionContext connection) => connection.User?.FindFirst(IdentityClaims.UserId)?.Value;
 }
 
-public sealed record CommunityPresenceResponse(IReadOnlyList<Guid> OnlineUserIds);
+/// <summary>Who is online now (<c>OnlineUserIds</c>) and how (<c>Statuses</c>, the same people).</summary>
+public sealed record CommunityPresenceResponse(IReadOnlyList<Guid> OnlineUserIds, IReadOnlyList<UserPresence>? Statuses = null);
 
-public sealed record FriendsPresenceResponse(IReadOnlyList<Guid> OnlineUserIds);
+/// <summary>Friends online now (<c>OnlineUserIds</c>) and how (<c>Statuses</c>, the same people).</summary>
+public sealed record FriendsPresenceResponse(IReadOnlyList<Guid> OnlineUserIds, IReadOnlyList<UserPresence>? Statuses = null);
 
 internal sealed class SignalRRealtimePublisher(IHubContext<RealtimeHub> hub, ILogger<SignalRRealtimePublisher> logger) : IRealtimePublisher
 {

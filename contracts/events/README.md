@@ -14,9 +14,10 @@ HTTP is described by `openapi/ovrilo-api.json`; realtime events are described he
 | --- | --- | --- | --- |
 | `SubscribeChannel` | `channelId: uuid` | `boolean` | `false` when the caller cannot read the channel; nothing is subscribed. Subscriptions last for the connection. |
 | `UnsubscribeChannel` | `channelId: uuid` | — | Idempotent. |
-| `SubscribeCommunity` | `communityId: uuid` | `{ onlineUserIds: uuid[] } \| null` | Presence of the community's members: who is online now, then `PresenceChanged` events. `null` when the caller is not an active member; nothing is subscribed. |
+| `SubscribeCommunity` | `communityId: uuid` | `{ onlineUserIds: uuid[], statuses: { userId, status }[] } \| null` | Presence of the community's members: who is online now and their status, then `PresenceChanged` events. `null` when the caller is not an active member; nothing is subscribed. |
 | `UnsubscribeCommunity` | `communityId: uuid` | — | Idempotent. |
-| `GetFriendsPresence` | — | `{ onlineUserIds: uuid[] }` | Friends online now. Friends' later changes arrive as `PresenceChanged` without subscribing; call again after reconnecting and after `FriendsChanged`. |
+| `SetIdle` | `idle: boolean` | — | This device's computer had no keyboard or mouse input for a while (`true`) or is back (`false`). The user shows as `away` while every connected device is idle. Not stored. |
+| `GetFriendsPresence` | — | `{ onlineUserIds: uuid[], statuses: { userId, status }[] }` | Friends online now. Friends' later changes arrive as `PresenceChanged` without subscribing; call again after reconnecting and after `FriendsChanged`. |
 
 ## Server → client
 
@@ -32,7 +33,7 @@ HTTP is described by `openapi/ovrilo-api.json`; realtime events are described he
 | `CallAccepted` | `{ conversationId }` | Someone answered. Sent to the caller's own connections on the first answer, and to the answering person's own connections (their other devices stop ringing). |
 | `CallEnded` | `{ conversationId, reason: "declined" \| "cancelled" \| "missed" }` | A ringing call stopped without being answered. `declined`: sent to the person who declined; the caller gets it once everyone they rang declined and nobody answered. `cancelled`: the caller hung up first; sent to the caller and everyone still ringing. `missed`: not answered within `VoiceSessions:Calls:RingSeconds` (default 30); sent to everyone still ringing, and to the caller when nobody answered. A connected call simply ends when people leave the SFU room. |
 | `GroupChanged` | `{ change: "added" \| "updated" \| "removed", groupId: uuid }` | Sent to members' own connections when a group was created, renamed, gained or lost members, or changed owner. `added`: you are now a member; `removed`: you left or were removed. Clients refetch `GET /groups`. |
-| `PresenceChanged` | `{ userId: uuid, online: boolean }` | A member of a subscribed community, or a friend, came online (first open connection) or went offline (last connection closed, after a grace period of `Realtime:PresenceGraceSeconds`, default 10, so reconnects do not flicker). |
+| `PresenceChanged` | `{ userId: uuid, online: boolean, status: "online" \| "away" \| "doNotDisturb" \| null }` | What a member of a subscribed community, or a friend, shows changed: came online (first open connection), went offline (last connection closed, after a grace period of `Realtime:PresenceGraceSeconds`, default 10, so reconnects do not flicker), or changed status. `status` is null when offline. The status comes from the user's choice (`PUT /users/me/status`) and idle devices (`SetIdle`); a user who chose `invisible` looks offline. |
 | `UserUpdated` | `{ userId: uuid, displayName: string, avatarAssetId: uuid \| null }` | A member of a subscribed community (or the caller, on their other devices) changed their avatar. Refetch the avatar by its new asset ID; `null` means initials. |
 | `CommunityUpdated` | `{ communityId: uuid, name: string, description: string \| null, iconAssetId: uuid \| null }` | A subscribed community's name, description or icon changed. |
 | `CommunityDeleted` | `{ communityId: uuid }` | The owner deleted a subscribed community. Remove it from the list, leave its voice channel if connected; its REST endpoints now answer `404`. |

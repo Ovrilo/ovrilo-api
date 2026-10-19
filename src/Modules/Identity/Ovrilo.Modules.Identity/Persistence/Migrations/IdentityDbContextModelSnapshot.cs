@@ -30,6 +30,12 @@ namespace Ovrilo.Modules.Identity.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("Availability")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("availability");
+
                     b.Property<Guid?>("AvatarAssetId")
                         .HasColumnType("uuid")
                         .HasColumnName("avatar_asset_id");

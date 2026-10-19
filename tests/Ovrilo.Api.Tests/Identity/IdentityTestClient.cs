@@ -21,7 +21,7 @@ internal static class IdentityTestClient
     {
         var response = await client.RegisterAsync(username ?? UniqueUsername());
         response.EnsureSuccessStatusCode();
-        return (await response.Content.ReadFromJsonAsync<AuthResponse>())!;
+        return (await response.Content.ReadFromJsonAsync<AuthResponse>(TestJson.Options))!;
     }
 
     public static Task<HttpResponseMessage> LoginAsync(this HttpClient client, string login, string password = Password) =>

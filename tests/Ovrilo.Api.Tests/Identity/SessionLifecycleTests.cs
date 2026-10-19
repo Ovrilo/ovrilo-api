@@ -17,7 +17,7 @@ public sealed class SessionLifecycleTests(OvriloApiFactory factory)
         var response = await client.RefreshAsync(registered.RefreshToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var refreshed = (await response.Content.ReadFromJsonAsync<AuthResponse>())!;
+        var refreshed = (await response.Content.ReadFromJsonAsync<AuthResponse>(TestJson.Options))!;
         Assert.NotEqual(registered.RefreshToken, refreshed.RefreshToken);
         Assert.Equal(registered.SessionExpiresAt, refreshed.SessionExpiresAt);
         var me = await client.SendAuthorizedAsync(HttpMethod.Get, "/users/me", refreshed.AccessToken);
@@ -29,7 +29,7 @@ public sealed class SessionLifecycleTests(OvriloApiFactory factory)
     {
         using var client = factory.CreateClient();
         var registered = await client.RegisterNewAsync();
-        var rotated = (await (await client.RefreshAsync(registered.RefreshToken)).Content.ReadFromJsonAsync<AuthResponse>())!;
+        var rotated = (await (await client.RefreshAsync(registered.RefreshToken)).Content.ReadFromJsonAsync<AuthResponse>(TestJson.Options))!;
 
         var replay = await client.RefreshAsync(registered.RefreshToken);
         var afterReplay = await client.RefreshAsync(rotated.RefreshToken);
@@ -58,7 +58,7 @@ public sealed class SessionLifecycleTests(OvriloApiFactory factory)
     {
         using var client = factory.CreateClient();
         var first = await client.RegisterNewAsync();
-        var second = (await (await client.LoginAsync(first.User.Username)).Content.ReadFromJsonAsync<AuthResponse>())!;
+        var second = (await (await client.LoginAsync(first.User.Username)).Content.ReadFromJsonAsync<AuthResponse>(TestJson.Options))!;
 
         var logout = await client.SendAuthorizedAsync(HttpMethod.Post, "/auth/logout", first.AccessToken);
         var logoutAgain = await client.SendAuthorizedAsync(HttpMethod.Post, "/auth/logout", first.AccessToken);
@@ -74,7 +74,7 @@ public sealed class SessionLifecycleTests(OvriloApiFactory factory)
     {
         using var client = factory.CreateClient();
         var first = await client.RegisterNewAsync();
-        var second = (await (await client.LoginAsync(first.User.Username)).Content.ReadFromJsonAsync<AuthResponse>())!;
+        var second = (await (await client.LoginAsync(first.User.Username)).Content.ReadFromJsonAsync<AuthResponse>(TestJson.Options))!;
 
         var response = await client.SendAuthorizedAsync(HttpMethod.Post, "/auth/logout-all", second.AccessToken);
 

@@ -160,6 +160,7 @@ app.MapVoiceSessionsEndpoints();
 app.MapMessagingEndpoints();
 app.MapSocialEndpoints();
 app.MapMediaEndpoints();
+app.MapStatusEndpoints();
 // Close connections when the access token expires, so revoked sessions stop receiving events;
 // clients reconnect with a fresh token and catch up over REST.
 app.MapHub<RealtimeHub>(RealtimeHub.Path, options => options.CloseOnAuthenticationExpiration = true);

@@ -23,6 +23,7 @@ internal sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> opti
             user.Property(u => u.DisplayName).HasMaxLength(User.DisplayNameMaxLength);
             user.Property(u => u.Email).HasMaxLength(User.EmailMaxLength);
             user.Property(u => u.Status).HasConversion<string>().HasMaxLength(32);
+            user.Property(u => u.Availability).HasConversion<string>().HasMaxLength(32);
             user.HasIndex(u => u.Username).IsUnique();
             user.HasIndex(u => u.Email).IsUnique();
         });

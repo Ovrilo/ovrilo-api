@@ -1,3 +1,5 @@
+using Ovrilo.Modules.Identity.Contracts;
+
 namespace Ovrilo.Modules.Identity.Features;
 
 /// <summary>Registers a new account and signs it in on the calling device.</summary>
@@ -24,6 +26,7 @@ public sealed record AuthResponse(
 
 /// <summary>The authenticated caller's own account.</summary>
 /// <param name="AvatarAssetId">Media asset of the profile picture, or null for initials.</param>
+/// <param name="Availability">The status the user chose (PUT /users/me/status).</param>
 public sealed record CurrentUserResponse(
     Guid Id,
     string Username,
@@ -31,7 +34,8 @@ public sealed record CurrentUserResponse(
     string Email,
     bool EmailVerified,
     DateTimeOffset CreatedAt,
-    Guid? AvatarAssetId);
+    Guid? AvatarAssetId,
+    Availability Availability = Availability.Online);
 
 /// <summary>Sets the profile picture to a verified upload (purpose <c>avatar</c>) made by the caller.</summary>
 public sealed record SetAvatarRequest(Guid AssetId);
