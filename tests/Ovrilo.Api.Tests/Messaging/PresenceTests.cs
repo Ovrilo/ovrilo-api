@@ -108,6 +108,60 @@ public sealed class PresenceTests(OvriloApiFactory factory)
         Assert.False(await HasEventWithinAsync(events, TimeSpan.FromMilliseconds(500)));
     }
 
+    [Fact]
+    public async Task OthersSeeWhatYouPlayFromYourLatestDevice()
+    {
+        using var owner = await TestUser.RegisterAsync(factory);
+        using var member = await TestUser.RegisterAsync(factory);
+        var community = await owner.CreateCommunityAsync();
+        await member.AcceptAsync((await owner.CreateInvitationAsync(community.Id)).Code);
+
+        await using var watcher = await ConnectAsync(owner);
+        var events = Channel.CreateUnbounded<PresenceChangedEvent>();
+        watcher.On<PresenceChangedEvent>(PresenceTracker.PresenceChanged, e => events.Writer.TryWrite(e));
+        await watcher.InvokeAsync<CommunityPresenceResponse?>("SubscribeCommunity", community.Id);
+
+        var memberId = member.Auth.User.Id;
+        await using var desktop = await ConnectAsync(member);
+        await NextAsync(events);
+
+        // The name is cleaned up and the server notes when it started; the same game again is not a change.
+        var before = DateTimeOffset.UtcNow.AddSeconds(-1);
+        await desktop.InvokeAsync("SetActivity", "  Valor\u0007ant \n");
+        var valorant = Playing(await NextAsync(events), memberId);
+        Assert.Equal("Valorant", valorant.Name);
+        Assert.InRange(valorant.StartedAt, before, DateTimeOffset.UtcNow.AddSeconds(1));
+        await desktop.InvokeAsync("SetActivity", "Valorant");
+        Assert.False(await HasEventWithinAsync(events, TimeSpan.FromMilliseconds(300)));
+        var snapshot = await watcher.InvokeAsync<CommunityPresenceResponse?>("SubscribeCommunity", community.Id);
+        Assert.Contains(new UserPresence(memberId, Availability.Online, valorant), snapshot!.Statuses!);
+
+        // A second device playing something else shows; when it leaves, the first one's game is back, still from its start.
+        var laptop = await ConnectAsync(member);
+        await laptop.InvokeAsync("SetActivity", "Minecraft");
+        Assert.Equal("Minecraft", Playing(await NextAsync(events), memberId).Name);
+        await laptop.DisposeAsync();
+        Assert.Equal(valorant, Playing(await NextAsync(events), memberId));
+
+        await desktop.InvokeAsync("SetActivity", (string?)null);
+        Assert.Equal(new PresenceChangedEvent(memberId, true, Availability.Online), await NextAsync(events));
+
+        // Invisible shares nothing, also not the game.
+        await desktop.InvokeAsync("SetActivity", "Valorant");
+        await NextAsync(events);
+        await SetStatusAsync(member, Availability.Invisible);
+        Assert.Equal(new PresenceChangedEvent(memberId, false), await NextAsync(events));
+        await desktop.InvokeAsync("SetActivity", "Minecraft");
+        Assert.False(await HasEventWithinAsync(events, TimeSpan.FromMilliseconds(300)));
+    }
+
+    private static UserActivity Playing(PresenceChangedEvent change, Guid userId)
+    {
+        Assert.Equal((userId, true, Availability.Online), (change.UserId, change.Online, change.Status));
+        Assert.Equal(ActivityType.Playing, change.Activity!.Type);
+        return change.Activity;
+    }
+
     private static Task<HttpResponseMessage> SetStatusAsync(TestUser user, Availability availability) =>
         user.Client.PutAsJsonAsync(new Uri("/users/me/status", UriKind.Relative), new SetStatusRequest(availability), TestJson.Options);
 

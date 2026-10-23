@@ -39,6 +39,13 @@ public sealed class RealtimeHub(
     public Task SetIdle(bool idle) => presence.SetIdleAsync(Context.User!.GetRequiredUserId(), Context.ConnectionId, idle);
 
     /// <summary>
+    /// The game this device is playing, or null when none. Shown to friends and community members
+    /// (the most recent across the user's devices) while the user is visible; never stored.
+    /// </summary>
+    public Task SetActivity(string? playing) =>
+        presence.SetActivityAsync(Context.User!.GetRequiredUserId(), Context.ConnectionId, UserActivity.Playing(playing));
+
+    /// <summary>
     /// Starts receiving PresenceChanged for the community's members. Returns the members online now,
     /// or null (and subscribes nothing) when the caller is not an active member.
     /// </summary>
@@ -69,7 +76,7 @@ public sealed class RealtimeHub(
     }
 
     private List<UserPresence> Present(IEnumerable<Guid> userIds) =>
-        [.. userIds.Select(id => (Id: id, Status: presence.StatusOf(id))).Where(p => p.Status is not null).Select(p => new UserPresence(p.Id, p.Status!.Value))];
+        [.. userIds.Select(presence.PresenceOf).OfType<UserPresence>()];
 
     public Task UnsubscribeCommunity(Guid communityId) =>
         Groups.RemoveFromGroupAsync(Context.ConnectionId, RealtimeGroups.Community(communityId), Context.ConnectionAborted);
