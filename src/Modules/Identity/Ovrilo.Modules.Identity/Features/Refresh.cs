@@ -13,12 +13,14 @@ internal static class Refresh
 {
     public static async Task<Results<Ok<AuthResponse>, ProblemHttpResult>> HandleAsync(
         RefreshRequest request,
+        HttpContext httpContext,
         IdentityDbContext db,
         SessionIssuer sessions,
         TimeProvider timeProvider,
         CancellationToken cancellationToken)
     {
-        if (!RefreshTokens.TryParse(request.RefreshToken, out var sessionId, out var secret))
+        var token = RefreshCookie.IsRequested(httpContext.Request) ? RefreshCookie.Read(httpContext.Request) : request.RefreshToken;
+        if (!RefreshTokens.TryParse(token, out var sessionId, out var secret))
         {
             return IdentityProblems.InvalidRefreshToken();
         }
@@ -51,7 +53,7 @@ internal static class Refresh
             return IdentityProblems.InvalidRefreshToken();
         }
 
-        return TypedResults.Ok(sessions.CreateResponse(user, session, refreshToken));
+        return TypedResults.Ok(RefreshCookie.Deliver(httpContext, sessions.CreateResponse(user, session, refreshToken)));
     }
 
     private static async Task<bool> TrySaveAsync(IdentityDbContext db, CancellationToken cancellationToken)

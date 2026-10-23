@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Ovrilo API",
-    "version": "0.18.0"
+    "version": "0.19.0"
   },
   "paths": {
     "/version": {
@@ -3629,7 +3629,10 @@
             "format": "date-time"
           },
           "refreshToken": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "sessionExpiresAt": {
             "type": "string",
@@ -4690,7 +4693,10 @@
         "type": "object",
         "properties": {
           "refreshToken": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

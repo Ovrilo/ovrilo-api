@@ -16,6 +16,7 @@ internal static class SignOut
     /// <summary>Revokes the caller's current session. Idempotent.</summary>
     public static async Task<Results<NoContent, UnauthorizedHttpResult>> CurrentAsync(
         ClaimsPrincipal principal,
+        HttpContext httpContext,
         IdentityDbContext db,
         TimeProvider timeProvider,
         CancellationToken cancellationToken)
@@ -25,6 +26,7 @@ internal static class SignOut
             return TypedResults.Unauthorized();
         }
 
+        RefreshCookie.Clear(httpContext);
         var now = timeProvider.GetDatabaseUtcNow();
         await db.UserSessions
             .Where(s => s.Id == sessionId && s.UserId == userId && s.RevokedAt == null)
@@ -40,6 +42,7 @@ internal static class SignOut
     /// <summary>Revokes every active session of the caller, including the current one. Idempotent.</summary>
     public static async Task<Results<NoContent, UnauthorizedHttpResult>> EverywhereAsync(
         ClaimsPrincipal principal,
+        HttpContext httpContext,
         IdentityDbContext db,
         TimeProvider timeProvider,
         CancellationToken cancellationToken)
@@ -49,6 +52,7 @@ internal static class SignOut
             return TypedResults.Unauthorized();
         }
 
+        RefreshCookie.Clear(httpContext);
         var now = timeProvider.GetDatabaseUtcNow();
         await db.UserSessions
             .Where(s => s.UserId == userId && s.RevokedAt == null)
