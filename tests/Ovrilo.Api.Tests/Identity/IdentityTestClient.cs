@@ -27,7 +27,7 @@ internal static class IdentityTestClient
     public static Task<HttpResponseMessage> LoginAsync(this HttpClient client, string login, string password = Password) =>
         client.PostAsJsonAsync(new Uri("/auth/login", UriKind.Relative), new LoginRequest(login, password, "Second device"));
 
-    public static Task<HttpResponseMessage> RefreshAsync(this HttpClient client, string refreshToken) =>
+    public static Task<HttpResponseMessage> RefreshAsync(this HttpClient client, string? refreshToken) =>
         client.PostAsJsonAsync(new Uri("/auth/refresh", UriKind.Relative), new RefreshRequest(refreshToken));
 
     public static Task<HttpResponseMessage> SendAuthorizedAsync(this HttpClient client, HttpMethod method, string path, string accessToken)

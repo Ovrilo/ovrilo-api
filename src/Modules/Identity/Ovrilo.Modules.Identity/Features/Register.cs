@@ -16,6 +16,7 @@ internal static class Register
 {
     public static async Task<Results<Created<AuthResponse>, ValidationProblem, ProblemHttpResult>> HandleAsync(
         RegisterRequest request,
+        HttpContext httpContext,
         IdentityDbContext db,
         IPasswordHasher<User> passwordHasher,
         SessionIssuer sessions,
@@ -74,6 +75,6 @@ internal static class Register
             return ex.IsUniqueViolation("ix_users_username") ? IdentityProblems.UsernameTaken() : IdentityProblems.EmailTaken();
         }
 
-        return TypedResults.Created("/users/me", sessions.CreateResponse(user, session, refreshToken));
+        return TypedResults.Created("/users/me", RefreshCookie.Deliver(httpContext, sessions.CreateResponse(user, session, refreshToken)));
     }
 }

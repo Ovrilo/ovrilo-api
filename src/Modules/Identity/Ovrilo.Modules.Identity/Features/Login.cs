@@ -13,6 +13,7 @@ internal static class Login
 {
     public static async Task<Results<Ok<AuthResponse>, ProblemHttpResult>> HandleAsync(
         LoginRequest request,
+        HttpContext httpContext,
         IdentityDbContext db,
         IPasswordHasher<User> passwordHasher,
         DummyPasswordHash dummyHash,
@@ -56,7 +57,7 @@ internal static class Login
         var (session, refreshToken) = sessions.StartSession(user, request.DeviceLabel);
         await db.SaveChangesAsync(cancellationToken);
 
-        return TypedResults.Ok(sessions.CreateResponse(user, session, refreshToken));
+        return TypedResults.Ok(RefreshCookie.Deliver(httpContext, sessions.CreateResponse(user, session, refreshToken)));
     }
 }
 

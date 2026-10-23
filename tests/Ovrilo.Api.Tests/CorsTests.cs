@@ -50,6 +50,21 @@ public sealed class CorsTests(OvriloApiFactory factory)
         Assert.False(response.Headers.Contains("Access-Control-Allow-Origin"));
     }
 
+    [Fact]
+    public async Task AllowedOriginsMaySendTheRefreshCookie()
+    {
+        using var client = factory.CreateClient();
+        var request = Preflight("http://tauri.localhost");
+        request.Headers.Remove("Access-Control-Request-Headers");
+        request.Headers.Add("Access-Control-Request-Headers", "content-type,x-ovrilo-session");
+
+        var response = await client.SendAsync(request);
+
+        Assert.Equal("true", response.Headers.GetValues("Access-Control-Allow-Credentials").Single());
+        var headers = string.Join(",", response.Headers.GetValues("Access-Control-Allow-Headers")).ToLowerInvariant();
+        Assert.Contains("x-ovrilo-session", headers);
+    }
+
     private static HttpRequestMessage Preflight(string origin, string method = "POST")
     {
         var request = new HttpRequestMessage(HttpMethod.Options, new Uri("/auth/login", UriKind.Relative));
