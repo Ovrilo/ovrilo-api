@@ -177,4 +177,15 @@ internal sealed class IdentityModuleApi(IdentityDbContext db) : IIdentityModule
 
     public Task<bool> IsAccountActiveAsync(Guid userId, CancellationToken cancellationToken = default) =>
         db.Users.AnyAsync(u => u.Id == userId && u.Status == UserStatus.Active, cancellationToken);
+
+    public async Task<Availability> GetAvailabilityAsync(Guid userId, CancellationToken cancellationToken = default) =>
+        await db.Users.AsNoTracking()
+            .Where(u => u.Id == userId && u.Status == UserStatus.Active)
+            .Select(u => (Availability?)u.Availability)
+            .SingleOrDefaultAsync(cancellationToken) ?? Availability.Online;
+
+    public async Task<bool> SetAvailabilityAsync(Guid userId, Availability availability, CancellationToken cancellationToken = default) =>
+        await db.Users
+            .Where(u => u.Id == userId && u.Status == UserStatus.Active)
+            .ExecuteUpdateAsync(set => set.SetProperty(u => u.Availability, availability), cancellationToken) == 1;
 }

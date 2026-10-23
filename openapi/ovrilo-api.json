@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Ovrilo API",
-    "version": "0.15.0"
+    "version": "0.16.0"
   },
   "paths": {
     "/version": {
@@ -704,6 +704,38 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/users/me/status": {
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Sets the status others see: online, away, doNotDisturb or invisible (looks offline). Kept across sessions and devices.",
+        "operationId": "SetStatus",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetStatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
           },
           "401": {
             "description": "Unauthorized"
@@ -3556,6 +3588,15 @@
           }
         }
       },
+      "Availability": {
+        "enum": [
+          "online",
+          "away",
+          "doNotDisturb",
+          "invisible"
+        ],
+        "default": "online"
+      },
       "BlockedUserResponse": {
         "required": [
           "user",
@@ -3928,6 +3969,9 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "availability": {
+            "$ref": "#/components/schemas/Availability"
           }
         }
       },
@@ -4720,6 +4764,17 @@
           "assetId": {
             "type": "string",
             "format": "uuid"
+          }
+        }
+      },
+      "SetStatusRequest": {
+        "required": [
+          "availability"
+        ],
+        "type": "object",
+        "properties": {
+          "availability": {
+            "$ref": "#/components/schemas/Availability"
           }
         }
       },

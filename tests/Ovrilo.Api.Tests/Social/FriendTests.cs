@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Ovrilo.Api.Realtime;
 using Ovrilo.Api.Tests.Communities;
 using Ovrilo.Api.Tests.Identity;
+using Ovrilo.Modules.Identity.Contracts;
 using Ovrilo.Modules.Social.Features;
 
 namespace Ovrilo.Api.Tests.Social;
@@ -141,7 +142,7 @@ public sealed class FriendTests(OvriloApiFactory factory)
         // No shared community: presence still reaches friends.
         Assert.Empty((await bobs.InvokeAsync<FriendsPresenceResponse>("GetFriendsPresence")).OnlineUserIds);
         var adas = await ConnectAsync(ada);
-        Assert.Equal(new PresenceChangedEvent(ada.Id, true), await NextAsync(presence));
+        Assert.Equal(new PresenceChangedEvent(ada.Id, true, Availability.Online), await NextAsync(presence));
         Assert.Equal([ada.Id], (await bobs.InvokeAsync<FriendsPresenceResponse>("GetFriendsPresence")).OnlineUserIds);
         await adas.DisposeAsync();
         Assert.Equal(new PresenceChangedEvent(ada.Id, false), await NextAsync(presence));

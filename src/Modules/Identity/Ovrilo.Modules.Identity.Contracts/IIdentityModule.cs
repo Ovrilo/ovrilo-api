@@ -14,6 +14,24 @@ public interface IIdentityModule
 
     /// <summary>Returns whether the account exists and may use the service.</summary>
     Task<bool> IsAccountActiveAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>The status the user chose (online when the account is not active).</summary>
+    Task<Availability> GetAvailabilityAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>Stores the user's chosen status; false when the account is not active.</summary>
+    Task<bool> SetAvailabilityAsync(Guid userId, Availability availability, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// The status a user chooses. Others see Online, Away or DoNotDisturb while the user is connected;
+/// Invisible looks offline to everyone else.
+/// </summary>
+public enum Availability
+{
+    Online,
+    Away,
+    DoNotDisturb,
+    Invisible,
 }
 
 /// <summary>Non-sensitive account data safe to show to other users.</summary>

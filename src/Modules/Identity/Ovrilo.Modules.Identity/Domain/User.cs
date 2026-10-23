@@ -1,3 +1,5 @@
+using Ovrilo.Modules.Identity.Contracts;
+
 namespace Ovrilo.Modules.Identity.Domain;
 
 internal enum UserStatus
@@ -32,6 +34,9 @@ internal sealed class User
     public Guid? AvatarAssetId { get; set; }
 
     public UserStatus Status { get; set; }
+
+    /// <summary>The status the user chose for others to see; kept across sessions and devices.</summary>
+    public Availability Availability { get; set; }
 
     public DateTimeOffset CreatedAt { get; init; }
 

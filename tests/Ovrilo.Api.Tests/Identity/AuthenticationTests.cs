@@ -20,7 +20,7 @@ public sealed class AuthenticationTests(OvriloApiFactory factory)
         var response = await client.RegisterAsync(username, $"  {username}@Example.COM ");
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var auth = (await response.Content.ReadFromJsonAsync<AuthResponse>())!;
+        var auth = (await response.Content.ReadFromJsonAsync<AuthResponse>(TestJson.Options))!;
         Assert.Equal(username.ToLowerInvariant(), auth.User.Username);
         Assert.Equal($"{username}@example.com".ToLowerInvariant(), auth.User.Email);
         Assert.False(auth.User.EmailVerified);
@@ -28,7 +28,7 @@ public sealed class AuthenticationTests(OvriloApiFactory factory)
 
         var me = await client.SendAuthorizedAsync(HttpMethod.Get, "/users/me", auth.AccessToken);
         Assert.Equal(HttpStatusCode.OK, me.StatusCode);
-        Assert.Equal(auth.User.Id, (await me.Content.ReadFromJsonAsync<CurrentUserResponse>())!.Id);
+        Assert.Equal(auth.User.Id, (await me.Content.ReadFromJsonAsync<CurrentUserResponse>(TestJson.Options))!.Id);
     }
 
     [Fact]
