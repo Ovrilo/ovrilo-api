@@ -127,6 +127,13 @@ public static class IdentityModule
             .WithName("GetCurrentUser")
             .WithSummary("Returns the authenticated account.");
 
+        endpoints.MapPost("/users/me/delete", DeleteAccount.HandleAsync)
+            .RequireAuthorization()
+            .WithTags("Users")
+            .WithName("DeleteAccount")
+            .WithSummary("Deletes the current account after checking the password. 409 identity.account_delete_blocked while the user owns a community. Messages stay as from \"Deleted user\".")
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
         endpoints.MapPut("/users/me/avatar", Avatar.SetAsync)
             .RequireAuthorization()
             .WithTags("Users")

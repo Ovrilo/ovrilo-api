@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
+using Ovrilo.BuildingBlocks;
 using Ovrilo.BuildingBlocks.Persistence;
 using Ovrilo.Modules.Communities.Contracts;
 using Ovrilo.Modules.Communities.Domain;
@@ -28,6 +29,7 @@ public static class CommunitiesModule
     {
         services.AddModuleDbContext<CommunitiesDbContext>(CommunitiesDbContext.Schema);
         services.AddScoped<ICommunitiesModule, CommunitiesModuleApi>();
+        services.AddScoped<IAccountDeletionParticipant, CommunityAccountDeletion>();
 
         services.AddRateLimiter(options => options.AddPolicy(InvitationRateLimitPolicy, context =>
         {

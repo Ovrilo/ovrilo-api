@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Ovrilo API",
-    "version": "0.16.0"
+    "version": "0.17.0"
   },
   "paths": {
     "/version": {
@@ -40,6 +40,58 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CurrentUserResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/users/me/delete": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Deletes the current account after checking the password. 409 identity.account_delete_blocked while the user owns a community. Messages stay as from \"Deleted user\".",
+        "operationId": "DeleteAccount",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteAccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -3972,6 +4024,17 @@
           },
           "availability": {
             "$ref": "#/components/schemas/Availability"
+          }
+        }
+      },
+      "DeleteAccountRequest": {
+        "required": [
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string"
           }
         }
       },
