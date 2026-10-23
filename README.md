@@ -71,3 +71,9 @@ Endpoints: `GET /health`, `GET /version`; `GET /openapi/v1.json` in Development.
 - The API never proxies voice media; it issues short-lived LiveKit grants after authorization (ADR-0006).
 - Binary media lives in S3-compatible storage behind `IObjectStorage` (ADR-0014). Clients upload and download with short-lived presigned URLs; the API verifies every upload (real format, size, dimensions) before it can be used.
 - OpenAPI is the client contract; the desktop generates its TypeScript client from it.
+
+## License
+
+Copyright (C) 2026 Barış Taner.
+
+Ovrilo API is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License, version 3 only (see [LICENSE](LICENSE)). If you run a modified version for other people over a network, you must offer them its source code.
